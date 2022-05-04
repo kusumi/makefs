@@ -37,6 +37,7 @@
 #define __FBSDID(s)	struct __hack
 #define __RCSID(s)	struct __hack
 #define __SCCSID(s)	struct __hack
+#define __KERNEL_RCSID(n, s)	struct __hack
 
 #ifndef __printflike
 #define __printflike(fmtarg, firstvararg)
@@ -89,6 +90,10 @@
 #define MAXPHYS		(1024 * 1024)
 #define MAXBSIZE	65536	/* must be power of 2 */
 
+#ifndef MAXPATHLEN
+#define MAXPATHLEN	1024
+#endif
+
 #ifndef nitems
 #define nitems(x)	(sizeof((x)) / sizeof((x)[0]))
 #endif
@@ -97,6 +102,14 @@
 #endif
 #ifndef roundup2
 #define roundup2(x, y)	roundup(x, y)
+#endif
+
+/* sys/sys/endian.h */
+#ifndef __PDP_ENDIAN
+#define __PDP_ENDIAN	3412
+#endif
+#ifndef PDP_ENDIAN
+#define PDP_ENDIAN	__PDP_ENDIAN
 #endif
 
 /* lib/libc/include/libc_private.h */

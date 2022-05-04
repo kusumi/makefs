@@ -2,7 +2,9 @@ core*
 *.swp
 *.o
 
-usr.sbin/makefs/makefs
-usr.sbin/makefs/makefs.exe
+/usr.sbin/makefs/makefs
+/usr.sbin/makefs/makefs.exe
 
-makefs.diff
+/makefs
+
+/makefs.diff

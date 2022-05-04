@@ -7,15 +7,18 @@
 
 ## Changes
 
++ 2022.05.05 - Port v7fs (Version 7 Unix file system) from NetBSD makefs(8)
+
 + 2022.05.01 - Sync with [FreeBSD 835ee05f3c754d905099a3500f421dc01fab028f](https://cgit.freebsd.org/src/commit/?id=835ee05f3c754d905099a3500f421dc01fab028f)
 
 ## Supported file systems
 
-|file system     |type name       |original implementation                 |
-|:---------------|:---------------|:---------------------------------------|
-|UFS             |ffs (default)   |FreeBSD makefs(8)                       |
-|FAT             |msdos           |FreeBSD makefs(8)                       |
-|ISO9660         |cd9660          |FreeBSD makefs(8)                       |
+|file system                |*-t* option name |original implementation |
+|:--------------------------|:----------------|:-----------------------|
+|UFS                        |ffs (default)    |FreeBSD makefs(8)       |
+|FAT                        |msdos            |FreeBSD makefs(8)       |
+|ISO9660                    |cd9660           |FreeBSD makefs(8)       |
+|Version 7 Unix file system |v7fs             |NetBSD makefs(8)        |
 
 ## Build
 
@@ -45,15 +48,21 @@
 
     + No \*.so dependencies, only libc required.
 
-+ mtree(5) related options are currently unsupported.
-
-    + *-F* option, *-N* option, and mtree file input will fail with an error message.
-
 + Due to lack of UFS standard among vendors, use an appropriate *"-o ufstype=..."* mount option to mount UFS on Linux.
 
     + Use *"-o ufstype=44bsd"* (4.4 BSD) for an image created with *"-o version=1"* or the default.
 
     + Use *"-o ufstype=ufs2"* (FreeBSD UFS2) for an image created with *"-o version=2"*.
+
+## Bug
+
++ mtree(5) related options are currently unsupported.
+
+    + *-F* option, *-N* option, and mtree file input will fail with an error message.
+
++ v7fs support compiles, but *"-t v7fs"* option not working.
+
+    + *"-t v7fs"* option does not work on NetBSD makefs(8) as well.
 
 ## Resource
 

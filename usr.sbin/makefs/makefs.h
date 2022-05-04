@@ -190,6 +190,7 @@ void		fs ## _makefs(const char *, const char *, fsnode *, fsinfo_t *)
 DECLARE_FUN(cd9660);
 DECLARE_FUN(ffs);
 DECLARE_FUN(msdos);
+DECLARE_FUN(v7fs);
 
 extern	u_int		debug;
 extern	int		dupsok;

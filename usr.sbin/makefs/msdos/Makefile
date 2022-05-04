@@ -6,7 +6,7 @@ CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-DMAKEFS
 # not -I.
-CFLAGS+=	-I.. -I../../../sbin/newfs_msdos -I../../../sys -I../../../lib/libnetbsd -I../../../lib/libutil
+CFLAGS+=	-I.. -I../../../sys -I../../../sbin/newfs_msdos -I../../../lib/libnetbsd -I../../../lib/libutil
 
 .PHONY: all clean
 
