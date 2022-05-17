@@ -191,6 +191,9 @@ DECLARE_FUN(cd9660);
 DECLARE_FUN(ffs);
 DECLARE_FUN(msdos);
 DECLARE_FUN(v7fs);
+#ifdef MAKEFS_EXFAT
+DECLARE_FUN(exfat);
+#endif
 
 extern	u_int		debug;
 extern	int		dupsok;

@@ -5,6 +5,12 @@ core*
 /usr.sbin/makefs/makefs
 /usr.sbin/makefs/makefs.exe
 
+/gpl/github.com/relan/exfat/dump/dumpexfat
+/gpl/github.com/relan/exfat/fsck/exfatfsck
+/gpl/github.com/relan/exfat/label/exfatlabel
+/gpl/github.com/relan/exfat/mkfs/mkexfatfs
+
 /makefs
+/exfat
 
 /makefs.diff
