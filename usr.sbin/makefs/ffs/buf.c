@@ -58,7 +58,7 @@ __FBSDID("$FreeBSD$");
 static TAILQ_HEAD(buftailhead, m_buf) buftail;
 
 int
-bread(struct m_vnode *vp, daddr_t blkno, int size, struct ucred *u1 __unused,
+bread(struct m_vnode *vp, makefs_daddr_t blkno, int size, struct ucred *u1 __unused,
     struct m_buf **bpp)
 {
 	off_t	offset;
@@ -118,13 +118,15 @@ brelse(struct m_buf *bp)
 		return;
 	}
 
-	TAILQ_REMOVE(&buftail, bp, b_tailq);
+	assert(bp->b_vp);
+	if (!bp->b_vp->v_logical)
+		TAILQ_REMOVE(&buftail, bp, b_tailq);
 	free(bp->b_data);
 	free(bp);
 }
 
-int
-bwrite(struct m_buf *bp)
+static int
+bwrite_impl(struct m_buf *bp)
 {
 	off_t	offset;
 	ssize_t	rv;
@@ -150,6 +152,21 @@ bwrite(struct m_buf *bp)
 		return (EAGAIN);
 }
 
+int
+bwrite(struct m_buf *bp)
+{
+	int error = bwrite_impl(bp);
+
+	/*
+	 * XXX	currently limited to HAMMER2, but this is the way bwrite
+	 *	and its variants work, otherwise bufs may be leaked.
+	 */
+	if (bp->b_is_hammer2)
+		brelse(bp);
+
+	return (error);
+}
+
 void
 bcleanup(void)
 {
@@ -161,30 +178,43 @@ bcleanup(void)
 	 *	aren't brelse()d
 	 */
 
-	if (TAILQ_EMPTY(&buftail))
+	if (TAILQ_EMPTY(&buftail)) {
+		printf("bcleanup: clean\n");
 		return;
+	}
 
 	printf("bcleanup: unflushed buffers:\n");
 	TAILQ_FOREACH(bp, &buftail, b_tailq) {
-		printf("\tlblkno %10lld  blkno %10lld  count %6ld  bufsize %6ld\n",
-		    (long long)bp->b_lblkno, (long long)bp->b_blkno,
-		    bp->b_bcount, bp->b_bufsize);
+		printf("\t%p  lblkno %10lld  blkno %10lld  count %6ld  bufsize %6ld  "
+		    "loffset %016lx  cmd %d  [vp %p  data %p  type %d  logical %d  vflushed %d]\n",
+		    bp, (long long)bp->b_lblkno, (long long)bp->b_blkno,
+		    bp->b_bcount, bp->b_bufsize,
+		    bp->b_loffset, bp->b_cmd, bp->b_vp,
+		    bp->b_vp ? bp->b_vp->v_data : NULL,
+		    bp->b_vp ? bp->b_vp->v_type : -1,
+		    bp->b_vp ? bp->b_vp->v_logical : -1,
+		    bp->b_vp ? bp->b_vp->v_vflushed : -1);
+		if (bp->b_vp)
+			assert(!bp->b_vp->v_logical);
 	}
 	printf("bcleanup: done\n");
 }
 
 struct m_buf *
-getblk(struct m_vnode *vp, daddr_t blkno, int size, int u1 __unused,
+getblk(struct m_vnode *vp, makefs_daddr_t blkno, int size, int u1 __unused,
     int u2 __unused, int u3 __unused)
 {
 	static int buftailinitted;
 	struct m_buf *bp;
 	void *n;
 
+	bp = NULL;
+	if (vp->v_logical)
+		goto skip_lookup;
+
 	if (debug & DEBUG_BUF_GETBLK)
 		printf("getblk: blkno %lld size %d\n", (long long)blkno, size);
 
-	bp = NULL;
 	if (!buftailinitted) {
 		if (debug & DEBUG_BUF_GETBLK)
 			printf("getblk: initialising tailq\n");
@@ -197,13 +227,17 @@ getblk(struct m_vnode *vp, daddr_t blkno, int size, int u1 __unused,
 			break;
 		}
 	}
+skip_lookup:
 	if (bp == NULL) {
 		bp = ecalloc(1, sizeof(*bp));
 		bp->b_bufsize = 0;
 		bp->b_blkno = bp->b_lblkno = blkno;
 		bp->b_fs = vp->fs;
 		bp->b_data = NULL;
-		TAILQ_INSERT_HEAD(&buftail, bp, b_tailq);
+		bp->b_vp = vp;
+		assert(bp->b_vp);
+		if (!bp->b_vp->v_logical)
+			TAILQ_INSERT_HEAD(&buftail, bp, b_tailq);
 	}
 	bp->b_bcount = size;
 	if (bp->b_data == NULL || bp->b_bcount > bp->b_bufsize) {

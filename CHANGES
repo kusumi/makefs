@@ -1,0 +1,16 @@
+r4
+======
+- Port HAMMER2 support from DragonFly BSD makefs(8)
+
+r3
+======
+- Add exFAT support using https://github.com/relan/exfat
+
+r2
+======
+- Port v7fs (Version 7 Unix file system) support from NetBSD makefs(8)
+
+r1
+======
+- Initial release
+- Sync with FreeBSD https://cgit.freebsd.org/src/commit/?id=835ee05f3c754d905099a3500f421dc01fab028f

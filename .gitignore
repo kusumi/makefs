@@ -6,9 +6,13 @@ core*
 /usr.sbin/makefs/makefs.exe
 
 /gpl/github.com/relan/exfat/dump/dumpexfat
+/gpl/github.com/relan/exfat/dump/dumpexfat.exe
 /gpl/github.com/relan/exfat/fsck/exfatfsck
+/gpl/github.com/relan/exfat/fsck/exfatfsck.exe
 /gpl/github.com/relan/exfat/label/exfatlabel
+/gpl/github.com/relan/exfat/label/exfatlabel.exe
 /gpl/github.com/relan/exfat/mkfs/mkexfatfs
+/gpl/github.com/relan/exfat/mkfs/mkexfatfs.exe
 
 /makefs
 /exfat

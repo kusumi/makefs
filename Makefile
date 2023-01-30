@@ -1,4 +1,4 @@
-SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos usr.sbin/makefs/v7fs sbin/fsck sbin/newfs_msdos sbin/newfs_v7fs sys/kern sys/fs/v7fs sys/ufs/ffs contrib/libc-vis contrib/mtree lib/libc/gen lib/libc/string lib/libnetbsd
+SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos usr.sbin/makefs/v7fs usr.sbin/makefs/hammer2 usr.sbin/makefs/hammer2/zlib sbin/fsck sbin/newfs_msdos sbin/newfs_v7fs sbin/hammer2 sbin/newfs_hammer2 sys/kern sys/libkern sys/fs/v7fs sys/ufs/ffs sys/vfs/hammer2/xxhash contrib/libc-vis contrib/mtree lib/libc/gen lib/libc/string lib/libnetbsd
 BINDIRS = usr.sbin/makefs
 
 # exFAT enabled by default

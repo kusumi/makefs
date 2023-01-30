@@ -79,6 +79,7 @@ static fstype_t fstypes[] = {
 	ENTRY(ffs),
 	ENTRY(msdos),
 	ENTRY(v7fs),
+	ENTRY(hammer2),
 #ifdef MAKEFS_EXFAT
 	ENTRY(exfat),
 #endif

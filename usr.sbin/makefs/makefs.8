@@ -266,12 +266,18 @@ BSD fast file system (default).
 ISO 9660 file system.
 .It Sy msdos
 FAT12, FAT16, or FAT32 file system.
+.It Sy hammer2
+HAMMER2 file system.
+.It Sy exfat
+exFAT file system.
 .El
 .It Fl x
 Exclude file system nodes not explicitly listed in the specfile.
 .It Fl Z
 Create a sparse file for
-.Sy ffs .
+.Sy ffs
+and
+.Sy hammer2 .
 This is useful for virtual machine images.
 .El
 .Pp
@@ -494,6 +500,50 @@ Volume ID.
 .It Cm volume_label
 Volume Label.
 .El
+.Ss hammer2-specific options
+.Sy hammer2
+images have HAMMER2-specific optional parameters that may be
+provided.
+The arguments consist of a keyword and, optionally, an equal sign
+.Pq Ql = ,
+and a value.
+The following keywords are supported:
+.Pp
+.Bl -tag -width omit-trailing-period -offset indent -compact
+.It Cm b
+Boot area size.
+See
+.Xr newfs_hammer2 8
+for details.
+.It Cm r
+Aux area size.
+See
+.Xr newfs_hammer2 8
+for details.
+.It Cm V
+File system version.
+See
+.Xr newfs_hammer2 8
+for details.
+.It Cm L
+PFS Label.
+See
+.Xr newfs_hammer2 8
+for details.
+Unlike
+.Xr newfs_hammer2 8 ,
+always defaults to "DATA".
+.It Cm v
+Number of volume headers (1, 2, 3, or 4).
+Defaults to 4, and the image size will be at least 4 * 2 = 8 GiB.
+.It Cm m
+The PFS label to which to create file system contents.
+Defaults to "DATA".
+.It Cm d
+sysctl vfs.hammer2.debug compatible tunable for debug prints.
+Specify 0xffffffff to enable all debug prints.
+Defaults to 0.
+.El
 .Sh SEE ALSO
 .Xr mtree 5 ,
 .Xr mtree 8 ,
@@ -522,4 +572,4 @@ The Linux port uses
 .An Christos Zoulas
 (msdos support),
 .An Tomohiro Kusumi
-(Linux port).
+(Linux port, exfat support, hammer2 support).

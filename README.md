@@ -3,15 +3,9 @@
 
 ## About
 
-+ A Linux port of FreeBSD makefs(8) + additional file systems support
++ A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
 
-## Changes
-
-+ 2022.05.17 - Add exFAT support using https://github.com/relan/exfat
-
-+ 2022.05.05 - Port v7fs (Version 7 Unix file system) support from NetBSD makefs(8)
-
-+ 2022.05.01 - Sync with FreeBSD [835ee05f3c754d905099a3500f421dc01fab028f](https://cgit.freebsd.org/src/commit/?id=835ee05f3c754d905099a3500f421dc01fab028f)
++ Also see [makefs(8)](usr.sbin/makefs/makefs.8.txt)
 
 ## Supported file systems
 
@@ -21,6 +15,7 @@
 |FAT                        |msdos            |FreeBSD makefs(8)              |
 |ISO9660                    |cd9660           |FreeBSD makefs(8)              |
 |Version 7 Unix file system |v7fs             |NetBSD makefs(8)               |
+|HAMMER2                    |hammer2          |DragonFly BSD makefs(8)        |
 |exFAT                      |exfat            |https://github.com/relan/exfat |
 
 ## Build
@@ -48,6 +43,10 @@
 + ISO9660
 
         $ ./makefs -t cd9660 /path/to/img /path/to/directory
+
++ HAMMER2
+
+        $ ./makefs -t hammer2 /path/to/img /path/to/directory
 
 + FAT12/16/32 (file size required)
 
@@ -79,6 +78,8 @@
 
     + Use *"-o ufstype=ufs2"* (FreeBSD UFS2) for an image created with *"-o version=2"*.
 
++ ZFS support which exists in recent FreeBSD makefs(8) is unsupported.
+
 ## Bug
 
 + mtree(5) related options are currently unsupported.
@@ -95,6 +96,10 @@
 
     + See *gpl/github.com/relan/exfat/COPYING*.
 
++ HAMMER2 and other files derived from DragonFly BSD are under BSDL.
+
+    + See *COPYRIGHT.dragonfly*.
+
 + All other files are under BSDL.
 
     + See *COPYRIGHT*.
@@ -106,5 +111,7 @@
 + FreeBSD mtree(5) [https://www.freebsd.org/cgi/man.cgi?query=mtree&sektion=5](https://www.freebsd.org/cgi/man.cgi?query=mtree&sektion=5)
 
 + NetBSD makefs(8) [https://man.netbsd.org/makefs.8](https://man.netbsd.org/makefs.8)
+
++ DragonFly BSD makefs(8) [https://man.dragonflybsd.org/?command=makefs](https://man.dragonflybsd.org/?command=makefs)
 
 + "Free exFAT file system implementation" [https://github.com/relan/exfat](https://github.com/relan/exfat)

@@ -86,6 +86,16 @@
 #endif
 #endif
 
+#if __GNUC_PREREQ(3, 1)
+#ifndef __noinline
+#define __noinline	__attribute__ ((__noinline__))
+#endif
+#else
+#ifndef __noinline
+#define __noinline
+#endif
+#endif
+
 /* sys/sys/param.h */
 #define MAXPHYS		(1024 * 1024)
 #define MAXBSIZE	65536	/* must be power of 2 */
@@ -102,6 +112,12 @@
 #endif
 #ifndef roundup2
 #define roundup2(x, y)	roundup(x, y)
+#endif
+#ifndef rounddown
+#define rounddown(x, y)	(((x)/(y))*(y))
+#endif
+#ifndef rounddown2
+#define rounddown2(x, y)	rounddown(x, y)
 #endif
 
 /* sys/sys/endian.h */
@@ -128,5 +144,9 @@ void errc(int, int, const char *, ...);
 /* include/string.h */
 size_t strlcat(char * __restrict, const char * __restrict, size_t);
 size_t strlcpy(char * __restrict, const char * __restrict, size_t);
+
+/* based on sys/sys/_stdint.h */
+#define __intptr_t	intptr_t
+#define __uintptr_t	uintptr_t
 
 #endif /* _MAKEFS_COMPAT_H */

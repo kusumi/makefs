@@ -89,6 +89,7 @@ typedef struct {
 	uint32_t	 nlink;		/* number of links to this entry */
 	enum fi_flags	 flags;		/* flags used by fs specific code */
 	struct stat	 st;		/* stat entry */
+	void		 *priv;		/* DragonFly: fs specific */
 } fsinode;
 
 typedef struct _fsnode {
@@ -191,6 +192,7 @@ DECLARE_FUN(cd9660);
 DECLARE_FUN(ffs);
 DECLARE_FUN(msdos);
 DECLARE_FUN(v7fs);
+DECLARE_FUN(hammer2);
 #ifdef MAKEFS_EXFAT
 DECLARE_FUN(exfat);
 #endif
