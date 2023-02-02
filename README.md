@@ -5,8 +5,6 @@
 
 + A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
 
-+ Also see [makefs(8)](usr.sbin/makefs/makefs.8.txt)
-
 ## Supported file systems
 
 |file system                |*-t* option name |original implementation        |
@@ -16,7 +14,7 @@
 |ISO9660                    |cd9660           |FreeBSD makefs(8)              |
 |Version 7 Unix file system |v7fs             |NetBSD makefs(8)               |
 |HAMMER2                    |hammer2          |DragonFly BSD makefs(8)        |
-|exFAT                      |exfat            |https://github.com/relan/exfat |
+|exFAT                      |exfat            |[https://github.com/relan/exfat](https://github.com/relan/exfat)|
 
 ## Build
 
@@ -30,31 +28,31 @@
         $ cd makefs
         $ make USE_EXFAT=0
 
-## Usage examples
+## [Usage](src/usr.sbin/makefs/makefs.8.txt) examples
 
 + 4.4BSD FFS
 
-        $ ./makefs -t ffs /path/to/img /path/to/directory
+        $ ./src/makefs -t ffs /path/to/img /path/to/directory
 
 + FreeBSD UFS2
 
-        $ ./makefs -t ffs -o version=2 /path/to/img /path/to/directory
+        $ ./src/makefs -t ffs -o version=2 /path/to/img /path/to/directory
 
 + ISO9660
 
-        $ ./makefs -t cd9660 /path/to/img /path/to/directory
+        $ ./src/makefs -t cd9660 /path/to/img /path/to/directory
 
 + HAMMER2
 
-        $ ./makefs -t hammer2 /path/to/img /path/to/directory
+        $ ./src/makefs -t hammer2 /path/to/img /path/to/directory
 
 + FAT12/16/32 (file size required)
 
-        $ ./makefs -t msdos -s 1g /path/to/img /path/to/directory
+        $ ./src/makefs -t msdos -s 1g /path/to/img /path/to/directory
 
 + exFAT (file size required)
 
-        $ ./makefs -t exfat -s 1g /path/to/img /path/to/directory
+        $ ./src/makefs -t exfat -s 1g /path/to/img /path/to/directory
 
 ## Install (optional)
 
@@ -68,7 +66,7 @@
 
 ## Note
 
-+ Build confirmed on Fedora, Ubuntu, and Cygwin.
++ Build confirmed on Fedora, Ubuntu, Cygwin on x86_64.
 
     + No \*.so dependencies, only libc required.
 
@@ -86,23 +84,17 @@
 
     + *-F* option, *-N* option, and mtree file input will fail with an error message.
 
-+ v7fs support compiles, but *"-t v7fs"* option not working.
++ v7fs support compiles, but *"-t v7fs"* option is broken.
 
-    + *"-t v7fs"* option does not work on NetBSD makefs(8) as well.
+    + *"-t v7fs"* option is broken on NetBSD makefs(8) as well.
 
 ## License
 
-+ Files under *gpl/* directory and *usr.sbin/makefs/exfat.c* are under GPL v2.
++ Files under [src/gpl](src/gpl) and [src/usr.sbin/makefs/exfat.c](src/usr.sbin/makefs/exfat.c) are under [GPL v2](src/gpl/github.com/relan/exfat/COPYING).
 
-    + See *gpl/github.com/relan/exfat/COPYING*.
++ [HAMMER2](src/usr.sbin/makefs/hammer2) and other files derived from DragonFly BSD are under [BSDL](COPYRIGHT.dragonfly).
 
-+ HAMMER2 and other files derived from DragonFly BSD are under BSDL.
-
-    + See *COPYRIGHT.dragonfly*.
-
-+ All other files are under BSDL.
-
-    + See *COPYRIGHT*.
++ All other files are under [BSDL](COPYRIGHT).
 
 ## Resource
 

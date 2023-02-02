@@ -1,3 +1,9 @@
+r5
+======
+- Add top level src directory
+- Sync with FreeBSD
+- Sync with https://github.com/relan/exfat
+
 r4
 ======
 - Port HAMMER2 support from DragonFly BSD makefs(8)

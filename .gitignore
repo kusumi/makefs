@@ -2,19 +2,19 @@ core*
 *.swp
 *.o
 
-/usr.sbin/makefs/makefs
-/usr.sbin/makefs/makefs.exe
+/src/usr.sbin/makefs/makefs
+/src/usr.sbin/makefs/makefs.exe
 
-/gpl/github.com/relan/exfat/dump/dumpexfat
-/gpl/github.com/relan/exfat/dump/dumpexfat.exe
-/gpl/github.com/relan/exfat/fsck/exfatfsck
-/gpl/github.com/relan/exfat/fsck/exfatfsck.exe
-/gpl/github.com/relan/exfat/label/exfatlabel
-/gpl/github.com/relan/exfat/label/exfatlabel.exe
-/gpl/github.com/relan/exfat/mkfs/mkexfatfs
-/gpl/github.com/relan/exfat/mkfs/mkexfatfs.exe
+/src/gpl/github.com/relan/exfat/dump/dumpexfat
+/src/gpl/github.com/relan/exfat/dump/dumpexfat.exe
+/src/gpl/github.com/relan/exfat/fsck/exfatfsck
+/src/gpl/github.com/relan/exfat/fsck/exfatfsck.exe
+/src/gpl/github.com/relan/exfat/label/exfatlabel
+/src/gpl/github.com/relan/exfat/label/exfatlabel.exe
+/src/gpl/github.com/relan/exfat/mkfs/mkexfatfs
+/src/gpl/github.com/relan/exfat/mkfs/mkexfatfs.exe
 
-/makefs
-/exfat
+/src/makefs
+/src/exfat
 
-/makefs.diff
+/src/makefs.diff
