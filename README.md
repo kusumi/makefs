@@ -3,7 +3,7 @@
 
 ## About
 
-+ A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
+A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
 
 ## Supported file systems
 
@@ -16,12 +16,25 @@
 |HAMMER2                    |hammer2          |DragonFly BSD makefs(8)        |
 |exFAT                      |exfat            |[https://github.com/relan/exfat](https://github.com/relan/exfat)|
 
+## Requirements
+
++ Linux or Cygwin
+
++ GCC
+
++ libuuid.so and *<uuid/uuid.h>* (unless HAMMER2 support is disabled on build)
+
 ## Build
 
 + By default all supported file systems above are enabled.
 
         $ cd makefs
         $ make
+
++ Specify *USE_HAMMER2=0* to disable HAMMER2 support.
+
+        $ cd makefs
+        $ make USE_HAMMER2=0
 
 + Specify *USE_EXFAT=0* to disable exFAT support.
 
@@ -64,11 +77,9 @@
         $ cd makefs
         $ make uninstall
 
-## Note
+## Notes
 
 + Build confirmed on Fedora, Ubuntu, Cygwin on x86_64.
-
-    + No \*.so dependencies, only libc required.
 
 + Due to lack of UFS standard among vendors, use an appropriate *"-o ufstype=..."* mount option to mount UFS on Linux.
 
