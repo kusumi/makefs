@@ -2,7 +2,6 @@ SRCS=	cd9660_archimedes.c cd9660_conversion.c cd9660_debug.c cd9660_eltorito.c c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 # not -I.
 CFLAGS+=	-I.. -I../../../sys -I../../../sys/fs/cd9660 -I../../../lib/libnetbsd -I../../../lib/libutil

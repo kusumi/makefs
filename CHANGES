@@ -1,3 +1,8 @@
+r7
+======
+- Support FreeBSD, NetBSD, OpenBSD, DragonFly BSD
+- Sync HAMMER2 with DragonFly BSD
+
 r6
 ======
 - Add build option USE_HAMMER2=0

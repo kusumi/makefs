@@ -52,7 +52,7 @@
 #include <limits.h>
 #include <sys/queue.h>
 #include <sys/param.h>
-#include <sys/endian.h>
+#include <sys/compat/endian.h>
 
 #include "makefs.h"
 #include "iso.h"

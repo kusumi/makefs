@@ -2,7 +2,6 @@ SRCS=	xxhash.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-I. -I../../..
 

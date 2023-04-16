@@ -39,7 +39,9 @@
 #define _HAMMER2_HAMMER2_COMPAT_H
 
 #include <sys/statvfs.h>
-//#include <sys/spinlock.h>
+#ifdef __DragonFly__
+#include <sys/spinlock.h>
+#endif
 #include <sys/uio.h> /* struct iovec */
 
 #include <stdio.h>
@@ -67,9 +69,9 @@
 #define VOP_FSYNC(vp, waitfor, flags)	(0)
 
 #define kprintf(s, ...)		printf(s, ## __VA_ARGS__)
-#define krateprintf(r, X, ...)	kprintf(X, ## __VA_ARGS__)
+#define krateprintf(r, s, ...)	kprintf(s, ## __VA_ARGS__)
 #define ksnprintf(s, n, ...)	snprintf(s, n, ## __VA_ARGS__)
-#define kstrdup(str, type)	strdup(str)
+#define kstrdup(s, type)	strdup(s)
 
 #define kmalloc_create(typep, descr)	do{}while(0)
 #define kmalloc_destroy(typep)		do{}while(0)
@@ -134,36 +136,34 @@
 #define NOTE_EXTEND	0x0004
 #define NOTE_LINK	0x0010
 
+#undef PCATCH
 #define PCATCH		0x00000100
 #define PINTERLOCKED	0x00000400
 
+/* These may be enum on some platforms */
+#if defined __linux__ || defined __CYGWIN__
 #define MNT_RDONLY	0x00000001
 #define MNT_LOCAL	0x00001000
 #define MNT_WAIT	0x0001
-
-/* Linux has MNT_FORCE but Cygwin doesn't */
-#ifndef MNT_FORCE
-#define MNT_FORCE	0x00080000
 #endif
 
-#define MNTK_THR_SYNC	0x40000000
-#define MNTK_ALL_MPSAFE	0x40000001
+#ifdef __CYGWIN__
+#define MNT_FORCE	0x00080000
+#endif
 
 #define VA_UID_UUID_VALID	0x0004
 #define VA_GID_UUID_VALID	0x0008
 
-#define DT_UNKNOWN	0
-#define DT_FIFO		1
-#define DT_CHR		2
-#define DT_DIR		4
-#define DT_BLK		6
-#define DT_REG		8
-#define DT_LNK		10
-#define DT_SOCK		12
-#define DT_WHT		14
-
-typedef int64_t		quad_t;
-typedef quad_t *	qaddr_t;
+/* Avoid conflict with <sys/dirent.h> */
+#define M_DT_UNKNOWN	0
+#define M_DT_FIFO	1
+#define M_DT_CHR	2
+#define M_DT_DIR	4
+#define M_DT_BLK	6
+#define M_DT_REG	8
+#define M_DT_LNK	10
+#define M_DT_SOCK	12
+#define M_DT_WHT	14
 
 extern int hz;
 extern int ticks;
@@ -181,15 +181,16 @@ struct lwkt_token {
 
 typedef struct lwkt_token *lwkt_token_t;
 
-#define MFSNAMELEN	16
+#ifndef MNAMELEN
 #define MNAMELEN	80
+#endif
 
-/* XXX Linux has fsid_t but Cygwin doesn't, so define own type */
-typedef struct hammer2_fsid {
+/* statfs(2) is platform specific, so define our own struct */
+typedef struct m_fsid {
 	int32_t val[2];
-} hammer2_fsid_t;
+} m_fsid_t;
 
-struct statfs {
+struct m_statfs {
 	long	f_spare2;
 	long	f_bsize;
 	long	f_iosize;
@@ -198,13 +199,13 @@ struct statfs {
 	long	f_bavail;
 	long	f_files;
 	long	f_ffree;
-	hammer2_fsid_t	f_fsid;
+	m_fsid_t	f_fsid;
 	uid_t	f_owner;
 	int	f_type;
 	int	f_flags;
 	long    f_syncwrites;
 	long    f_asyncwrites;
-	char	f_fstypename[MFSNAMELEN];
+	char	f_fstypename[16]; // MFSNAMELEN
 	char	f_mntonname[MNAMELEN];
 	long    f_syncreads;
 	long    f_asyncreads;
@@ -214,12 +215,13 @@ struct statfs {
 	long    f_spare[2];
 };
 
-struct mount {
+/* struct mount is visible from user space on some platforms */
+struct m_mount {
 	int mnt_flag;
 	int mnt_kern_flag;
-	struct statfs mnt_stat;
+	struct m_statfs mnt_stat;
 	struct statvfs mnt_vstat;
-	qaddr_t mnt_data;
+	void *mnt_data;
 	unsigned int mnt_iosize_max;
 };
 
@@ -242,6 +244,10 @@ struct nchandle {
 
 struct hammer2_uuid_t;
 
+/*
+ * struct vattr is usually visible from user space on *BSD if the header
+ * e.g. <sys/vnode.h> is included, but makefs HAMMER2 excludes it.
+ */
 struct vattr {
 	enum vtype	va_type;
 	u_int64_t	va_nlink;
@@ -539,6 +545,7 @@ struct vop_ops {
 	int (*vop_nrename)(struct vop_nrename_args *);
 };
 
+#if defined __linux__ || defined __CYGWIN__ || defined __DragonFly__
 enum uio_seg {
 	UIO_USERSPACE,
 	UIO_SYSSPACE,
@@ -549,6 +556,11 @@ enum uio_rw {
 	UIO_READ,
 	UIO_WRITE
 };
+#endif
+
+#if defined __NetBSD__ || defined __OpenBSD__
+#define UIO_NOCOPY	2
+#endif
 
 struct uio {
 	struct iovec *uio_iov;
@@ -578,9 +590,11 @@ typedef mtx_t hammer2_mtx_t;
 typedef u_int mtx_state_t;
 typedef mtx_state_t hammer2_mtx_state_t;
 
+#ifndef __DragonFly__
 struct spinlock {
 	int lock;
 };
+#endif
 
 typedef struct spinlock hammer2_spin_t;
 
@@ -716,7 +730,7 @@ atomic_cmpset_64(void *dst, uint64_t old, uint64_t new)
 
 static __inline
 void
-trigger_syncer(struct mount *mp)
+trigger_syncer(struct m_mount *mp)
 {
 }
 
@@ -729,7 +743,7 @@ vfs_mountedon(struct m_vnode *vp)
 
 static __inline
 uid_t
-vop_helper_create_uid(struct mount *mp, mode_t dmode, uid_t duid,
+vop_helper_create_uid(struct m_mount *mp, mode_t dmode, uid_t duid,
 			struct ucred *cred, mode_t *modep)
 {
 	return (getuid());
@@ -744,7 +758,7 @@ vinitvmio(struct m_vnode *vp, off_t filesize, int blksize, int boff)
 
 static __inline
 int
-getnewvnode(enum vtagtype tag, struct mount *mp, struct m_vnode **vpp,
+getnewvnode(enum vtagtype tag, struct m_mount *mp, struct m_vnode **vpp,
 		int lktimeout, int lkflags)
 {
 	struct m_vnode *vp;

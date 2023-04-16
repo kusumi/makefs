@@ -34,6 +34,7 @@
  * OF SUCH DAMAGE.
  */
 
+#include <sys/types.h> /* for OpenBSD */
 #include <sys/mount.h>
 
 #include <sys/compat.h>

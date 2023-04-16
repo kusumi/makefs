@@ -34,7 +34,6 @@
 #include "nbtool_config.h"
 #endif
 
-#include <sys/compat.h> /* strlxxx() */
 #include <sys/cdefs.h>
 #ifdef __RCSID
 __RCSID("$NetBSD: efun.c,v 1.10 2015/07/26 02:20:30 kamil Exp $");
@@ -51,6 +50,7 @@ __RCSID("$NetBSD: efun.c,v 1.10 2015/07/26 02:20:30 kamil Exp $");
 
 static void (*efunc)(int, const char *, ...) = err;
 
+#if 0
 void (*
 esetfunc(void (*ef)(int, const char *, ...)))(int, const char *, ...)
 {
@@ -84,6 +84,7 @@ estrlcat(char *dst, const char *src, size_t len)
 	}
 	return rv;
 }
+#endif
 
 char *
 estrdup(const char *s)
@@ -94,6 +95,7 @@ estrdup(const char *s)
 	return d;
 }
 
+#if 0
 char *
 estrndup(const char *s, size_t len)
 {
@@ -102,6 +104,7 @@ estrndup(const char *s, size_t len)
 		(*efunc)(1, "Cannot copy string");
 	return d;
 }
+#endif
 
 void *
 emalloc(size_t n)
@@ -130,6 +133,7 @@ erealloc(void *p, size_t n)
 	return q;
 }
 
+#if 0
 FILE *
 efopen(const char *p, const char *m)
 {
@@ -159,3 +163,4 @@ evasprintf(char ** __restrict ret, const char * __restrict format, va_list ap)
 		(*efunc)(1, "Cannot format string");
 	return rv;
 }
+#endif

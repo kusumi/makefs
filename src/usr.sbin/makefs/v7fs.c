@@ -139,7 +139,7 @@ v7fs_makefs(const char *image, const char *dir, fsnode *root, fsinfo_t *fsopts)
 		endian = BIG_ENDIAN;
 #endif
 	if (v7fs_opts->pdp_endian) {
-		endian = PDP_ENDIAN;
+		endian = 3412; //PDP_ENDIAN
 	}
 
 	v7fs_mount.endian = endian;

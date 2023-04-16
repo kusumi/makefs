@@ -2,6 +2,9 @@
 
 assert_libuuid() {
 	EXPECT=$1
+	if [[ `uname` = *BSD ]] || [ `uname` = "DragonFly" ]; then
+		return # part of libc
+	fi
 	if [ "${EXPECT}" = "y" ]; then
 		if [[ `uname` = CYGWIN* ]]; then
 			ldd ./src/makefs | grep cyguuid
@@ -62,6 +65,12 @@ assert_exfat() {
 NO_HAMMER2="USE_HAMMER2=0"
 NO_EXFAT="USE_EXFAT=0"
 
+if [[ `uname` = *BSD ]] || [ `uname` = "DragonFly" ]; then
+	MAKE=gmake
+else
+	MAKE=make
+fi
+
 for x in "" ${NO_HAMMER2} ${NO_EXFAT}; do
 	for y in "" ${NO_HAMMER2} ${NO_EXFAT}; do
 		if [ "${x}" = "${y}" ]; then
@@ -69,9 +78,9 @@ for x in "" ${NO_HAMMER2} ${NO_EXFAT}; do
 		fi
 
 		echo "========================================"
-		make clean >/dev/null || exit 1
+		${MAKE} clean >/dev/null || exit 1
 
-		CMD="make ${x} ${y}"
+		CMD="${MAKE} ${x} ${y}"
 		echo ${CMD}
 		${CMD}
 		if [ $? -ne 0 ]; then
@@ -79,7 +88,7 @@ for x in "" ${NO_HAMMER2} ${NO_EXFAT}; do
 			exit 1
 		fi
 
-		if [ "${x}" = ${NO_HAMMER2} -o "${y}" = ${NO_HAMMER2} ]; then
+		if [ "${x}" = ${NO_HAMMER2} ] || [ "${y}" = ${NO_HAMMER2} ]; then
 			assert_libuuid "n"
 			assert_hammer2 "n"
 		else
@@ -87,7 +96,7 @@ for x in "" ${NO_HAMMER2} ${NO_EXFAT}; do
 			assert_hammer2 "y"
 		fi
 
-		if [ "${x}" = ${NO_EXFAT} -o "${y}" = ${NO_EXFAT} ]; then
+		if [ "${x}" = ${NO_EXFAT} ] || [ "${y}" = ${NO_EXFAT} ]; then
 			assert_exfat "n"
 		else
 			assert_exfat "y"

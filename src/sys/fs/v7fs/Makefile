@@ -2,7 +2,6 @@ SRCS=	v7fs_datablock.c v7fs_dirent.c v7fs_endian.c v7fs_file.c v7fs_file_util.c 
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-Wno-address-of-packed-member
 CFLAGS+=	-DV7FS_EI

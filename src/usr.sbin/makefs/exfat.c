@@ -527,9 +527,13 @@ exfat_init_image(const char *image, fsinfo_t *fsopts)
 		if (ftruncate(fd, size) == -1)
 			err(1, "ftruncate failed");
 	} else {
+#ifdef __OpenBSD__
+		errx(1, "OpenBSD does not support posix_fallocate, use sparse");
+#else
 		printf("posix_fallocate(%d, 0, 0x%lx)\n", fd, size);
 		if (posix_fallocate(fd, 0, size) == -1)
 			err(1, "posix_fallocate failed");
+#endif
 	}
 	close(fd);
 

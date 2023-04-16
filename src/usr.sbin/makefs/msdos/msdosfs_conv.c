@@ -52,7 +52,7 @@
 __FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
-#include <sys/endian.h>
+#include <sys/compat/endian.h>
 
 #include <dirent.h>
 #include <stdio.h>

@@ -251,6 +251,13 @@ struct msdosfs_args {
 };
 #endif /* MAKEFS */
 
+#ifdef __OpenBSD__
+/* OpenBSD has these in <sys/mount.h>... */
+#undef MSDOSFSMNT_SHORTNAME
+#undef MSDOSFSMNT_LONGNAME
+#undef MSDOSFSMNT_NOWIN95
+#endif
+
 /*
  * Msdosfs mount options:
  */

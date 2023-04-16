@@ -53,25 +53,25 @@ hammer2_get_dtype(uint8_t type)
 {
 	switch(type) {
 	case HAMMER2_OBJTYPE_UNKNOWN:
-		return (DT_UNKNOWN);
+		return (M_DT_UNKNOWN);
 	case HAMMER2_OBJTYPE_DIRECTORY:
-		return (DT_DIR);
+		return (M_DT_DIR);
 	case HAMMER2_OBJTYPE_REGFILE:
-		return (DT_REG);
+		return (M_DT_REG);
 	case HAMMER2_OBJTYPE_FIFO:
-		return (DT_FIFO);
+		return (M_DT_FIFO);
 	case HAMMER2_OBJTYPE_CDEV:
-		return (DT_CHR);
+		return (M_DT_CHR);
 	case HAMMER2_OBJTYPE_BDEV:
-		return (DT_BLK);
+		return (M_DT_BLK);
 	case HAMMER2_OBJTYPE_SOFTLINK:
-		return (DT_LNK);
+		return (M_DT_LNK);
 	case HAMMER2_OBJTYPE_SOCKET:
-		return (DT_SOCK);
+		return (M_DT_SOCK);
 	case HAMMER2_OBJTYPE_WHITEOUT:	/* not supported */
-		return (DT_UNKNOWN);
+		return (M_DT_UNKNOWN);
 	default:
-		return (DT_UNKNOWN);
+		return (M_DT_UNKNOWN);
 	}
 	/* not reached */
 }
@@ -157,14 +157,22 @@ hammer2_timespec_to_time(const struct timespec *ts)
 uint32_t
 hammer2_to_unix_xid(const hammer2_uuid_t *u)
 {
+#if defined __linux__ || defined __CYGWIN__
 	const struct __uuid *uuid = (const struct __uuid *)u->uuid;
+#else
+	const struct __uuid *uuid = (void *)&u->uuid;
+#endif
 	return(*(const uint32_t *)&uuid->node[2]);
 }
 
 void
 hammer2_guid_to_uuid(hammer2_uuid_t *u, uint32_t guid)
 {
+#if defined __linux__ || defined __CYGWIN__
 	struct __uuid *uuid = (struct __uuid *)u->uuid;
+#else
+	struct __uuid *uuid = (void *)&u->uuid;
+#endif
 	bzero(uuid, sizeof(*uuid));
 	*(uint32_t *)&uuid->node[2] = guid;
 }

@@ -2,7 +2,6 @@ SRCS=	hammer2_admin.c hammer2_buf.c hammer2_chain.c hammer2_cluster.c hammer2_fl
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 # not -I.
 CFLAGS+=	-I.. -I../../../sys -I../../../sbin/hammer2 -I../../../sbin/newfs_hammer2 -I../../../lib/libnetbsd -I../../../lib/libutil

@@ -661,7 +661,7 @@ hammer2_vop_readdir(struct vop_readdir_args *ap)
 	 */
 	if (saveoff == 0) {
 		inum = ip->meta.inum & HAMMER2_DIRHASH_USERMSK;
-		r = vop_write_dirent(&error, uio, inum, DT_DIR, 1, ".");
+		r = vop_write_dirent(&error, uio, inum, M_DT_DIR, 1, ".");
 		if (r)
 			goto done;
 		if (cookies)
@@ -676,7 +676,7 @@ hammer2_vop_readdir(struct vop_readdir_args *ap)
 		inum = ip->meta.inum & HAMMER2_DIRHASH_USERMSK;
 		if (ip != ip->pmp->iroot)
 			inum = ip->meta.iparent & HAMMER2_DIRHASH_USERMSK;
-		r = vop_write_dirent(&error, uio, inum, DT_DIR, 2, "..");
+		r = vop_write_dirent(&error, uio, inum, M_DT_DIR, 2, "..");
 		if (r)
 			goto done;
 		if (cookies)
@@ -1040,7 +1040,7 @@ hammer2_read_file(hammer2_inode_t *ip, struct uio *uio, int seqcount)
 		if (n > size - uio->uio_offset)
 			n = (int)(size - uio->uio_offset);
 		bp->b_flags |= B_AGE;
-		uiomovebp(bp, (char *)bp->b_data + loff, n, uio);
+		uiomovebp(bp, bp->b_data + loff, n, uio);
 		bqrelse(bp);
 	}
 	hammer2_mtx_unlock(&ip->truncate_lock);
@@ -1207,7 +1207,7 @@ hammer2_write_file(hammer2_inode_t *ip, struct uio *uio,
 		 * Ok, copy the data in
 		 */
 		bkvasync(bp);
-		error = uiomovebp(bp, (char *)bp->b_data + loff, n, uio);
+		error = uiomovebp(bp, bp->b_data + loff, n, uio);
 		kflags |= NOTE_WRITE;
 		modified = 1;
 		if (error) {
@@ -2648,7 +2648,7 @@ int
 hammer2_vop_mountctl(struct vop_mountctl_args *ap)
 {
 #if 0
-	struct mount *mp;
+	struct m_mount *mp;
 	hammer2_pfs_t *pmp;
 	int rc;
 

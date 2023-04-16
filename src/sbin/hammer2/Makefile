@@ -2,7 +2,6 @@ SRCS=	ondisk.c subs.c uuid.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-I. -I../../sys
 

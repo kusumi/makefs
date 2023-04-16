@@ -2,7 +2,6 @@ SRCS=	buf.c ffs_alloc.c ffs_balloc.c ffs_bswap.c ffs_subr.c mkfs.c ufs_bmap.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 # not -I.
 CFLAGS+=	-I.. -I../../../sys -I../../../lib/libnetbsd -I../../../lib/libutil

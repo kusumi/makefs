@@ -1,4 +1,13 @@
-SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos usr.sbin/makefs/v7fs sbin/fsck sbin/newfs_msdos sbin/newfs_v7fs sys/kern sys/fs/v7fs sys/ufs/ffs contrib/libc-vis contrib/mtree lib/libc/gen lib/libc/string lib/libnetbsd
+SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos usr.sbin/makefs/v7fs sbin/fsck sbin/newfs_msdos sbin/newfs_v7fs sys/kern sys/fs/v7fs sys/ufs/ffs contrib/mtree lib/libnetbsd
+
+UNAME := $(shell uname -s)
+ifeq ($(UNAME), Linux)
+	SUBDIRS+=	contrib/libc-vis lib/libc/gen lib/libc/string
+endif
+ifeq ($(UNAME), CYGWIN_NT-10.0)
+	SUBDIRS+=	contrib/libc-vis lib/libc/gen lib/libc/string
+endif
+
 BINDIRS = usr.sbin/makefs
 
 # HAMMER2 enabled by default

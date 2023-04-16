@@ -36,7 +36,7 @@
 #define _LIBNETBSD_UTIL_H_
 
 #include <sys/types.h>
-#include <libutil.h>
+//#include <libutil.h>
 #include <stdio.h>
 
 #if 0
@@ -61,6 +61,10 @@ char	*flags_to_string(u_long flags, const char *def);
 int	 sockaddr_snprintf(char *, size_t, const char *,
 			   const struct sockaddr *);
 int	 string_to_flags(char **stringp, u_long *setp, u_long *clrp);
-
 #endif
+
+long long
+strsuftoll(const char *desc, const char *val,
+    long long min, long long max);
+
 #endif

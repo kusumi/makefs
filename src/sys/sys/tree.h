@@ -323,6 +323,10 @@ struct {								\
 	struct type *rbe_link[3];					\
 }
 
+#if defined __linux__ || defined __CYGWIN__
+#define __uintptr_t			uintptr_t
+#endif
+
 /*
  * With the expectation that any object of struct type has an
  * address that is a multiple of 4, and that therefore the

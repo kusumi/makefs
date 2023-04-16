@@ -93,7 +93,7 @@ struct bpb710 {
  * halfword boundaries.
  */
 
-#include <sys/endian.h>
+#include <sys/compat/endian.h>
 
 #define	getushort(x)	le16dec(x)
 #define	getulong(x)	le32dec(x)

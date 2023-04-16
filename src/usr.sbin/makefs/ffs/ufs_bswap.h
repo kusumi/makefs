@@ -35,7 +35,7 @@
 #include "opt_ffs.h"
 #endif
 
-#include <sys/endian.h>
+#include <sys/compat/endian.h>
 
 #include "makefs.h"
 

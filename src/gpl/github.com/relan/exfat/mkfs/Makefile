@@ -3,7 +3,6 @@ SRCS=	cbm.c fat.c main.c mkexfat.c rootdir.c uct.c uctc.c vbr.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-I. -I../libexfat
 

@@ -33,6 +33,7 @@
 #ifndef _MAKEFS_MSDOS_H
 #define _MAKEFS_MSDOS_H
 
+#undef NOCRED
 #define NOCRED NULL
 
 #define MSDOSFS_DPRINTF(args) do {	\

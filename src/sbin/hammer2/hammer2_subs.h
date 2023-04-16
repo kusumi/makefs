@@ -36,7 +36,12 @@
 #define HAMMER2_HAMMER2_SUBS_H_
 
 #include <sys/types.h>
+
+#if defined __linux__ || defined __CYGWIN__
 #include <uuid/uuid.h>
+#else
+#include <uuid.h>
+#endif
 
 #include <vfs/hammer2/hammer2_disk.h>
 

@@ -45,13 +45,32 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #include <err.h>
-#include <uuid/uuid.h>
 
-#if defined __CYGWIN__
+#if defined __linux__ || defined __CYGWIN__
+#include <uuid/uuid.h>
+#else
+#include <uuid.h>
+#endif
+
+#ifdef __CYGWIN__
 #include <cygwin/fs.h> /* BLKGETSIZE, BLKSSZGET */
+#endif
+
+#if defined __FreeBSD__ || defined __NetBSD__
+#include <sys/disk.h>
+#endif
+
+#ifdef __OpenBSD__
+#include <sys/dkio.h>
+#include <sys/disklabel.h>
+#endif
+
+#ifdef __DragonFly__
+#include <sys/diskslice.h>
 #endif
 
 #include <vfs/hammer2/hammer2_disk.h>
@@ -102,6 +121,7 @@ check_volume(int fd)
 	/*
 	 * Get basic information about the volume
 	 */
+#if defined __linux__ || defined __CYGWIN__
 	if (ioctl(fd, BLKGETSIZE, &size) < 0) {
 		/*
 		 * Allow the formatting of regular files as HAMMER2 volumes
@@ -124,6 +144,89 @@ check_volume(int fd)
 		}
 		size <<= 9;
 	}
+#elif defined __FreeBSD__ || defined __NetBSD__
+	if (ioctl(fd, DIOCGMEDIASIZE, &size) < 0) {
+		/*
+		 * Allow the formatting of regular files as HAMMER2 volumes
+		 */
+		if (fstat(fd, &st) < 0)
+			err(1, "Unable to stat fd %d", fd);
+		if (!S_ISREG(st.st_mode))
+			errx(1, "Unsupported file type for fd %d", fd);
+		size = st.st_size;
+	} else {
+		/*
+		 * When formatting a block device as a HAMMER2 volume the
+		 * sector size must be compatible.  HAMMER2 uses 64K
+		 * filesystem buffers but logical buffers for direct I/O
+		 * can be as small as HAMMER2_LOGSIZE (16KB).
+		 */
+		int media_blksize;
+		if (!ioctl(fd, DIOCGSECTORSIZE, &media_blksize) &&
+		    (media_blksize > HAMMER2_PBUFSIZE ||
+		    HAMMER2_PBUFSIZE % media_blksize)) {
+			errx(1, "A media sector size of %d is not supported",
+			     media_blksize);
+		}
+	}
+#elif defined __OpenBSD__
+	struct disklabel dl;
+	if (ioctl(fd, DIOCGDINFO, &dl) < 0) {
+		/*
+		 * Allow the formatting of regular files as HAMMER2 volumes
+		 */
+		if (fstat(fd, &st) < 0)
+			err(1, "Unable to stat fd %d", fd);
+		if (!S_ISREG(st.st_mode))
+			errx(1, "Unsupported file type for fd %d", fd);
+		size = st.st_size;
+	} else {
+		/*
+		 * When formatting a block device as a HAMMER2 volume the
+		 * sector size must be compatible.  HAMMER2 uses 64K
+		 * filesystem buffers but logical buffers for direct I/O
+		 * can be as small as HAMMER2_LOGSIZE (16KB).
+		 */
+		int media_blksize = dl.d_secsize;
+		size = (hammer2_off_t)dl.d_secperunit * media_blksize;
+		if (media_blksize > HAMMER2_PBUFSIZE ||
+		    HAMMER2_PBUFSIZE % media_blksize) {
+			errx(1, "A media sector size of %d is not supported",
+			     media_blksize);
+		}
+	}
+#elif defined __DragonFly__
+	struct partinfo pinfo;
+	if (ioctl(fd, DIOCGPART, &pinfo) < 0) {
+		/*
+		 * Allow the formatting of regular files as HAMMER2 volumes
+		 */
+		if (fstat(fd, &st) < 0)
+			err(1, "Unable to stat fd %d", fd);
+		if (!S_ISREG(st.st_mode))
+			errx(1, "Unsupported file type for fd %d", fd);
+		size = st.st_size;
+	} else {
+		/*
+		 * When formatting a block device as a HAMMER2 volume the
+		 * sector size must be compatible.  HAMMER2 uses 64K
+		 * filesystem buffers but logical buffers for direct I/O
+		 * can be as small as HAMMER2_LOGSIZE (16KB).
+		 */
+		if (pinfo.reserved_blocks) {
+			errx(1, "HAMMER2 cannot be placed in a partition "
+			    "which overlaps the disklabel or MBR");
+		}
+		if (pinfo.media_blksize > HAMMER2_PBUFSIZE ||
+		    HAMMER2_PBUFSIZE % pinfo.media_blksize) {
+			errx(1, "A media sector size of %d is not supported",
+			     pinfo.media_blksize);
+		}
+		size = pinfo.media_size;
+	}
+#else
+#error "Unsupported platform"
+#endif
 	return(size);
 }
 

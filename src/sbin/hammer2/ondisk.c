@@ -41,6 +41,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 //#include <fstab.h> /* Cygwin */
 #include <assert.h>
@@ -352,7 +353,7 @@ hammer2_verify_volumes_1(hammer2_ondisk_t *fsp,
 	}
 
 	/* check volume */
-	vol = &fsp->volumes[0];
+	vol = &fsp->volumes[HAMMER2_ROOT_VOLUME];
 	path = vol->path;
 	if (vol->id)
 		errx(1, "%s has non zero id %d", path, vol->id);
@@ -492,7 +493,7 @@ void
 hammer2_init_volumes(const char *blkdevs, int rdonly)
 {
 	hammer2_volume_data_t *rootvoldata;
-	char *p, *devpath;
+	char *o, *p, *devpath;
 
 	if (hammer2_volumes_initialized)
 		errx(1, "Already initialized");
@@ -500,7 +501,7 @@ hammer2_init_volumes(const char *blkdevs, int rdonly)
 		errx(1, "NULL blkdevs");
 
 	hammer2_init_ondisk(&fso);
-	p = strdup(blkdevs);
+	o = p = strdup(blkdevs);
 	while ((devpath = p) != NULL) {
 		if ((p = strchr(p, ':')) != NULL)
 			*p++ = 0;
@@ -512,7 +513,7 @@ hammer2_init_volumes(const char *blkdevs, int rdonly)
 			hammer2_add_volume(devpath, rdonly);
 		free(devpath);
 	}
-	free(p);
+	free(o);
 	hammer2_volumes_initialized = 1;
 
 	rootvoldata = hammer2_read_root_volume_header();

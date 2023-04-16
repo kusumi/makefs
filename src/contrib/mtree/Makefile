@@ -2,7 +2,6 @@ SRCS=	misc.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-I. -I../../sys -I../../lib/libnetbsd -I../../lib/libutil
 

@@ -1,10 +1,8 @@
 /*-
- * SPDX-License-Identifier: BSD-2-Clause
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
- * Copyright 2018-2020 Alex Richardson <arichardson@FreeBSD.org>
- *
- * This work was supported by Innovate UK project 105694, "Digital Security by
- * Design (DSbD) Technology Platform Prototype".
+ * Copyright (c) 2002 Thomas Moestl <tmm@FreeBSD.org>
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,5 +24,31 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $FreeBSD$
  */
-#error "<sys/buf.h> should not be included by makefs"
+
+#ifndef _SYS_COMPAT_ENDIAN_H_
+#define _SYS_COMPAT_ENDIAN_H_
+
+#if defined __linux__ || defined __CYGWIN__
+#include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/compat/_endian.h>
+
+#define	bswap16(x)	__bswap_16(x)
+#define	bswap32(x)	__bswap_32(x)
+#define	bswap64(x)	__bswap_64(x)
+
+#elif defined __OpenBSD__
+#include <sys/endian.h>
+#include <sys/compat/_endian.h>
+
+#define	bswap16(x)	swap16(x)
+#define	bswap32(x)	swap32(x)
+#define	bswap64(x)	swap64(x)
+
+#else
+#include <sys/endian.h>
+#endif
+#endif	/* _SYS_COMPAT_ENDIAN_H_ */

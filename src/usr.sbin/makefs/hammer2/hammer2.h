@@ -1219,7 +1219,7 @@ typedef struct hammer2_dev hammer2_dev_t;
  *	    point.
  */
 struct hammer2_pfs {
-	struct mount		*mp;
+	struct m_mount		*mp;
 	TAILQ_ENTRY(hammer2_pfs) mntentry;	/* hammer2_pfslist */
 	hammer2_uuid_t		pfs_clid;
 	hammer2_dev_t		*spmp_hmp;	/* only if super-root pmp */
@@ -1310,7 +1310,7 @@ MALLOC_DECLARE(M_HAMMER2);
 
 static __inline
 hammer2_pfs_t *
-MPTOPMP(struct mount *mp)
+MPTOPMP(struct m_mount *mp)
 {
 	return ((hammer2_pfs_t *)mp->mnt_data);
 }
@@ -1554,7 +1554,7 @@ int hammer2_dirent_create(hammer2_inode_t *dip, const char *name,
 			size_t name_len, hammer2_key_t inum, uint8_t type);
 
 hammer2_key_t hammer2_pfs_inode_count(hammer2_pfs_t *pmp);
-int vflush(struct mount *mp, int rootrefs, int flags);
+int vflush(struct m_mount *mp, int rootrefs, int flags);
 
 /*
  * hammer2_chain.c
@@ -1902,7 +1902,7 @@ int hammer2_msg_adhoc_input(kdmsg_msg_t *msg);
 /*
  * hammer2_vfsops.c
  */
-int hammer2_vfs_sync(struct mount *mp, int waitflags);
+int hammer2_vfs_sync(struct m_mount *mp, int waitflags);
 int hammer2_vfs_sync_pmp(hammer2_pfs_t *pmp, int waitfor);
 int hammer2_vfs_enospace(hammer2_inode_t *ip, off_t bytes, struct ucred *cred);
 
@@ -1910,9 +1910,9 @@ hammer2_pfs_t *hammer2_pfsalloc(hammer2_chain_t *chain,
 				const hammer2_inode_data_t *ripdata,
 				hammer2_dev_t *force_local);
 void hammer2_pfsdealloc(hammer2_pfs_t *pmp, int clindex, int destroying);
-int hammer2_vfs_vget(struct mount *mp, struct m_vnode *dvp,
+int hammer2_vfs_vget(struct m_mount *mp, struct m_vnode *dvp,
 				ino_t ino, struct m_vnode **vpp);
-int hammer2_vfs_root(struct mount *mp, struct m_vnode **vpp);
+int hammer2_vfs_root(struct m_mount *mp, struct m_vnode **vpp);
 
 void hammer2_lwinprog_ref(hammer2_pfs_t *pmp);
 void hammer2_lwinprog_drop(hammer2_pfs_t *pmp);
@@ -1929,9 +1929,9 @@ void hammer2_voldata_modify(hammer2_dev_t *hmp);
 int hammer2_vfs_init(void);
 int hammer2_vfs_uninit(void);
 
-int hammer2_vfs_mount(struct m_vnode *makefs_devvp, struct mount *mp,
+int hammer2_vfs_mount(struct m_vnode *makefs_devvp, struct m_mount *mp,
 			const char *label, const struct hammer2_mount_info *mi);
-int hammer2_vfs_unmount(struct mount *mp, int mntflags);
+int hammer2_vfs_unmount(struct m_mount *mp, int mntflags);
 
 /*
  * hammer2_freemap.c
@@ -1990,7 +1990,7 @@ int hammer2_open_devvp(const hammer2_devvp_list_t *devvpl, int ronly);
 int hammer2_close_devvp(const hammer2_devvp_list_t *devvpl, int ronly);
 int hammer2_init_devvp(struct m_vnode *devvp, hammer2_devvp_list_t *devvpl);
 void hammer2_cleanup_devvp(hammer2_devvp_list_t *devvpl);
-int hammer2_init_vfsvolumes(struct mount *mp, const hammer2_devvp_list_t *devvpl,
+int hammer2_init_vfsvolumes(struct m_mount *mp, const hammer2_devvp_list_t *devvpl,
 			hammer2_vfsvolume_t *volumes,
 			hammer2_volume_data_t *rootvoldata,
 			int *rootvolzone,

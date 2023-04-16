@@ -35,7 +35,7 @@
 
 #include <sys/compat.h>
 #include <sys/cdefs.h>
-#include <sys/endian.h>
+#include <sys/compat/endian.h>
 __KERNEL_RCSID(0, "$NetBSD: v7fs_endian.c,v 1.2 2011/07/18 21:51:49 apb Exp $");
 #if defined _KERNEL_OPT
 #include "opt_v7fs.h"
@@ -176,7 +176,7 @@ v7fs_endian_init(struct v7fs_self *fs)
 		ops->conv24read = val24_reverse_order_read;
 		ops->conv24write = val24_reverse_order_write;
 		break;
-	case PDP_ENDIAN:
+	case 3412: //PDP_ENDIAN
 		ops->conv32 = val32_pdp_to_little;
 		ops->conv16 = val16_normal_order;
 		ops->conv24read = val24_pdp_read;
@@ -195,7 +195,7 @@ v7fs_endian_init(struct v7fs_self *fs)
 		ops->conv24read = val24_normal_order_read;
 		ops->conv24write = val24_normal_order_write;
 		break;
-	case PDP_ENDIAN:
+	case 3412: //PDP_ENDIAN
 		ops->conv32 = val32_pdp_to_big;
 		ops->conv16 = val16_reverse_order;
 		ops->conv24read = val24_pdp_read;

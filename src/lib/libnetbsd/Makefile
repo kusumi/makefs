@@ -2,7 +2,6 @@ SRCS=	efun.c strsuftoll.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-I. -I../../sys -I../../lib/libutil
 

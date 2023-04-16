@@ -46,6 +46,7 @@
 #include <sys/stat.h>
 #include <sys/time.h> /* gettimeofday */
 #include <err.h>
+#include <errno.h>
 #include <stdint.h> /* uintX_t */
 #include <stddef.h> /* size_t */
 

@@ -1,9 +1,19 @@
-[makefs(8)](https://www.freebsd.org/cgi/man.cgi?query=makefs&sektion=8) for Linux
-===
+[FreeBSD makefs(8)](https://www.freebsd.org/cgi/man.cgi?query=makefs&sektion=8) for Linux / *BSD
+========
 
 ## About
 
-A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
++ FreeBSD makefs(8) + HAMMER2 support + exFAT support
+
+## Supported platforms
+
++ Linux, Cygwin, FreeBSD, NetBSD, OpenBSD, DragonFly BSD
+
+## Requirements
+
++ C compiler
+
++ libuuid.so and *<uuid/uuid.h>* on Linux (unless HAMMER2 support is disabled on build)
 
 ## Supported file systems
 
@@ -16,17 +26,9 @@ A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
 |HAMMER2                    |hammer2          |DragonFly BSD makefs(8)        |
 |exFAT                      |exfat            |[https://github.com/relan/exfat](https://github.com/relan/exfat)|
 
-## Requirements
-
-+ Linux or Cygwin
-
-+ GCC
-
-+ libuuid.so and *<uuid/uuid.h>* (unless HAMMER2 support is disabled on build)
-
 ## Build
 
-+ By default all supported file systems above are enabled.
++ By default all supported file systems above are enabled. Use [gmake(1)](https://www.freebsd.org/cgi/man.cgi?query=gmake&sektion=1) on *BSD.
 
         $ cd makefs
         $ make
@@ -79,7 +81,7 @@ A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
 
 ## Notes
 
-+ Build confirmed on Fedora, Ubuntu, Cygwin on x86_64.
++ Build confirmed on Fedora, Ubuntu, Cygwin, FreeBSD, NetBSD, OpenBSD, DragonFly BSD on x86_64.
 
 + Due to lack of UFS standard among vendors, use an appropriate *"-o ufstype=..."* mount option to mount UFS on Linux.
 
@@ -89,7 +91,7 @@ A Linux port of FreeBSD makefs(8) + HAMMER2 support + exFAT support
 
 + ZFS support which exists in recent FreeBSD makefs(8) is unsupported.
 
-## Bug
+## Bugs
 
 + mtree(5) related options are currently unsupported.
 

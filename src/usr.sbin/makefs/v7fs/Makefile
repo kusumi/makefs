@@ -2,7 +2,6 @@ SRCS=	v7fs_estimate.c v7fs_populate.c
 
 OBJS := $(SRCS:.c=.o)
 
-CC=	gcc
 CFLAGS+=	-Wall -g
 CFLAGS+=	-DV7FS_EI
 # not -I.

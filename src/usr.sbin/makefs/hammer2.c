@@ -188,12 +188,17 @@ hammer2_makefs(const char *image, const char *dir, fsnode *root,
     fsinfo_t *fsopts)
 {
 	hammer2_makefs_options_t *h2_opt = fsopts->fs_specific;
-	struct mount mp;
+	struct m_mount mp;
 	struct hammer2_mount_info info;
 	struct m_vnode devvp, *vroot;
 	hammer2_inode_t *iroot;
 	struct timeval start;
 	int error;
+
+	/* assert possibly platform dependent macros */
+	assert(PCATCH != PINTERLOCKED);
+	assert(UIO_USERSPACE != UIO_NOCOPY);
+	assert(UIO_SYSSPACE != UIO_NOCOPY);
 
 	assert(image != NULL);
 	assert(dir != NULL);

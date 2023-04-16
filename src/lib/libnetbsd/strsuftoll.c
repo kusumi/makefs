@@ -78,12 +78,14 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 
+#if 0
 #ifdef _LIBC
 # ifdef __weak_alias
 __weak_alias(strsuftoll, _strsuftoll)
 __weak_alias(strsuftollx, _strsuftollx)
 # endif
 #endif /* LIBC */
+#endif
 
 /*
  * Convert an expression of the following forms to a (u)int64_t.
@@ -107,8 +109,8 @@ __weak_alias(strsuftollx, _strsuftollx)
  * rather than exiting with it.
  */
 /* LONGLONG */
-long long
-strsuftollx(const char *desc, const char *val,
+static long long
+_strsuftollx(const char *desc, const char *val,
     long long min, long long max, char *ebuf, size_t ebuflen)
 {
 	long long num, t;
@@ -178,7 +180,7 @@ strsuftollx(const char *desc, const char *val,
 	case '*':				/* Backward compatible */
 	case 'x':
 		t = num;
-		num *= strsuftollx(desc, expr + 1, min, max, ebuf, ebuflen);
+		num *= _strsuftollx(desc, expr + 1, min, max, ebuf, ebuflen);
 		if (*ebuf != '\0')
 			return (0);
 		if (t > num) {
@@ -218,7 +220,7 @@ strsuftoll(const char *desc, const char *val,
 	long long result;
 	char	errbuf[100];
 
-	result = strsuftollx(desc, val, min, max, errbuf, sizeof(errbuf));
+	result = _strsuftollx(desc, val, min, max, errbuf, sizeof(errbuf));
 	if (*errbuf != '\0')
 		errx(1, "%s", errbuf);
 	return (result);

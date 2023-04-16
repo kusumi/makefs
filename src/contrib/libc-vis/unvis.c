@@ -58,8 +58,10 @@ __FBSDID("$FreeBSD$");
  */
 #define	__arraycount(__x)	(sizeof(__x) / sizeof(__x[0]))
 
+#if 0
 #ifdef __weak_alias
 __weak_alias(strnunvisx,_strnunvisx)
+#endif
 #endif
 
 #if !HAVE_VIS

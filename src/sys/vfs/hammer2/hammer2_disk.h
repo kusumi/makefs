@@ -36,9 +36,10 @@
 #ifndef _VFS_HAMMER2_DISK_H_
 #define _VFS_HAMMER2_DISK_H_
 
-#ifndef _SYS_UUID_H_
-//#include <sys/uuid.h>
+#if defined __linux__ || defined __CYGWIN__
 #include <uuid/uuid.h>
+#else
+#include <uuid.h>
 #endif
 
 /*

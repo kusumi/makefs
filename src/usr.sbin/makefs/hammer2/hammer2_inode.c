@@ -1804,7 +1804,7 @@ hammer2_pfs_inode_count(hammer2_pfs_t *pmp)
 }
 
 int
-vflush(struct mount *mp, int rootrefs, int flags)
+vflush(struct m_mount *mp, int rootrefs, int flags)
 {
 	hammer2_pfs_t *pmp = MPTOPMP(mp);
 	struct hammer2_inode *ip, *tmp;
