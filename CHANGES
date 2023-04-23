@@ -1,3 +1,11 @@
+r8
+======
+- Sync with FreeBSD
+- Sync HAMMER2 with DragonFly BSD
+- Sync with https://github.com/relan/exfat
+- Add script/image_creat_test.sh
+- Add script/image_mount_test.sh
+
 r7
 ======
 - Support FreeBSD, NetBSD, OpenBSD, DragonFly BSD

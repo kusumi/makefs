@@ -44,6 +44,7 @@
 //#include <sys/dirent.h>
 
 #include "hammer2.h"
+#include "makefs.h"
 
 /*
  * Return the directory entry type for an inode.
@@ -318,15 +319,19 @@ hammer2_calc_physical(hammer2_inode_t *ip, hammer2_key_t lbase)
 	return (pblksize);
 }
 
-void
-hammer2_update_time(uint64_t *timep)
-{
-	struct timeval ts;
-	int error;
+extern fsnode *hammer2_curnode;
 
-	error = gettimeofday(&ts, NULL);
-	KKASSERT(error == 0);
-	*timep = (unsigned long)ts.tv_sec * 1000000 + ts.tv_usec;
+void
+hammer2_update_time(uint64_t *timep, bool is_mtime)
+{
+	struct timespec *ts;
+	struct stat *st;
+
+	assert(hammer2_curnode);
+	st = stampst.st_ino != 0 ? &stampst : &hammer2_curnode->inode->st;
+	ts = is_mtime ? &st->st_mtim : &st->st_ctim;
+
+	*timep = (uint64_t)ts->tv_sec * 1000000 + ts->tv_nsec / 1000;
 }
 
 void

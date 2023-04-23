@@ -38,12 +38,11 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
-//#include <sys/sysctl.h>
 #include <sys/mman.h>
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -65,6 +64,8 @@ static int hammer2_populate_dir(struct m_vnode *, const char *, fsnode *,
 static void hammer2_validate(const char *, fsnode *, fsinfo_t *);
 static void hammer2_size_dir(fsnode *, fsinfo_t *);
 static int hammer2_write_file(struct m_vnode *, const char *, fsnode *);
+
+fsnode *hammer2_curnode;
 
 void
 hammer2_prep_opts(fsinfo_t *fsopts)
@@ -703,6 +704,9 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 		errx(1, "no such dir %s", dir);
 
 	for (cur = root->next; cur != NULL; cur = cur->next) {
+		/* global variable for HAMMER2 vnops */
+		hammer2_curnode = cur;
+
 		/* construct source path */
 		if (cur->contents) {
 			path = cur->contents;
@@ -765,7 +769,7 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 			if (error)
 				errx(1, "failed to populate %s: %s",
 				    path, strerror(error));
-			cur->inode->priv = vp;
+			cur->inode->param = vp;
 			continue;
 		}
 
@@ -786,7 +790,7 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 			if (error)
 				errx(1, "hammer2_write_file(\"%s\") failed: %s",
 				    path, strerror(error));
-			cur->inode->priv = vp;
+			cur->inode->param = vp;
 			continue;
 		}
 
@@ -803,7 +807,7 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 				    cur->name, strerror(error));
 			assert(vp);
 			hammer2_print(dvp, vp, cur, depth, "nsymlink");
-			cur->inode->priv = vp;
+			cur->inode->param = vp;
 			continue;
 		}
 
@@ -819,7 +823,7 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 				    cur->name, strerror(error));
 			assert(vp);
 			hammer2_print(dvp, vp, cur, depth, "nmknod");
-			cur->inode->priv = vp;
+			cur->inode->param = vp;
 			continue;
 		}
 
@@ -829,7 +833,7 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 			assert(cur->child == NULL);
 
 			/* source vnode must not be NULL */
-			vp = cur->inode->priv;
+			vp = cur->inode->param;
 			assert(vp);
 			/* currently these conditions must be true */
 			assert(vp->v_data);

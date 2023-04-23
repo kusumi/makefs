@@ -19,7 +19,7 @@ endif
 # exFAT enabled by default
 export USE_EXFAT	?= 1
 ifeq ($(USE_EXFAT), 1)
-	SUBDIRS	+= gpl/github.com/relan/exfat/libexfat gpl/github.com/relan/exfat/dump gpl/github.com/relan/exfat/fsck gpl/github.com/relan/exfat/label gpl/github.com/relan/exfat/mkfs
+	SUBDIRS	+= gpl/github.com/relan/exfat/libexfat gpl/github.com/relan/exfat/dump gpl/github.com/relan/exfat/fsck gpl/github.com/relan/exfat/label gpl/github.com/relan/exfat/mkfs gpl/github.com/relan/exfat/attrib
 endif
 
 .PHONY: all clean $(SUBDIRS) $(BINDIRS)

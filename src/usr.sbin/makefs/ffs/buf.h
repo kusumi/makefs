@@ -86,7 +86,6 @@ struct m_buf {
 	makefs_daddr_t	b_lblkno; /* expanded to 64 bits */
 	makefs_daddr_t	b_loffset; /* DragonFly + expanded to 64 bits */
 	buf_cmd_t	b_cmd; /* DragonFly */
-	int		b_is_hammer2; /* DragonFly */
 	struct m_vnode	*b_vp; /* DragonFly */
 	struct makefs_fsinfo *b_fs;
 

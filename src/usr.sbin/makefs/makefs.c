@@ -278,7 +278,6 @@ main(int argc, char *argv[])
 			fsoptions.sparse = 1;
 			break;
 
-		case '?':
 		default:
 			usage(fstype, &fsoptions);
 			/* NOTREACHED */

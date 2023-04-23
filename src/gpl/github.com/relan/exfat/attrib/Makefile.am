@@ -1,9 +1,9 @@
 #
-#	Makefile.am (30.03.15)
+#	Makefile.am (08.11.20)
 #	Automake source.
 #
 #	Free exFAT implementation.
-#	Copyright (C) 2011-2023  Andrew Nayenko
+#	Copyright (C) 2020  Endless OS Foundation LLC
 #
 #	This program is free software; you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
 #	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-sbin_PROGRAMS = dumpexfat
-dist_man8_MANS = dumpexfat.8
-dumpexfat_SOURCES = main.c
-dumpexfat_CPPFLAGS = -I$(top_srcdir)/libexfat
-dumpexfat_LDADD = ../libexfat/libexfat.a
+sbin_PROGRAMS = exfatattrib
+dist_man8_MANS = exfatattrib.8
+exfatattrib_SOURCES = main.c
+exfatattrib_CPPFLAGS = -I$(top_srcdir)/libexfat
+exfatattrib_LDADD = ../libexfat/libexfat.a

@@ -103,5 +103,6 @@ for x in "" ${NO_HAMMER2} ${NO_EXFAT}; do
 		fi
 	done
 done
+${MAKE} clean >/dev/null || exit 1
 
 echo "success"

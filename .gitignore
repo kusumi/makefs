@@ -12,6 +12,8 @@
 /src/gpl/github.com/relan/exfat/label/exfatlabel.exe
 /src/gpl/github.com/relan/exfat/mkfs/mkexfatfs
 /src/gpl/github.com/relan/exfat/mkfs/mkexfatfs.exe
+/src/gpl/github.com/relan/exfat/attrib/exfatattrib
+/src/gpl/github.com/relan/exfat/attrib/exfatattrib.exe
 
 /src/makefs
 /src/exfat

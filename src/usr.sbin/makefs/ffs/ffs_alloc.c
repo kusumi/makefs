@@ -306,7 +306,6 @@ ffs_alloccg(struct inode *ip, int cg, daddr_t bpref, int size)
 	error = bread((void *)ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)),
 	    (int)fs->fs_cgsize, NULL, &bp);
 	if (error) {
-		brelse(bp);
 		return (0);
 	}
 	cgp = (struct cg *)bp->b_data;
@@ -450,7 +449,6 @@ ffs_blkfree(struct inode *ip, daddr_t bno, long size)
 	error = bread((void *)ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)),
 	    (int)fs->fs_cgsize, NULL, &bp);
 	if (error) {
-		brelse(bp);
 		return;
 	}
 	cgp = (struct cg *)bp->b_data;

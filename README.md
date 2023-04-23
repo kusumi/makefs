@@ -43,6 +43,16 @@
         $ cd makefs
         $ make USE_EXFAT=0
 
+## Install (optional)
+
+        $ cd makefs
+        $ make && make install
+
+## Uninstall (optional)
+
+        $ cd makefs
+        $ make uninstall
+
 ## [Usage](src/usr.sbin/makefs/makefs.8.txt) examples
 
 + 4.4BSD FFS
@@ -69,16 +79,6 @@
 
         $ ./src/makefs -t exfat -s 1g /path/to/img /path/to/directory
 
-## Install (optional)
-
-        $ cd makefs
-        $ make && make install
-
-## Uninstall (optional)
-
-        $ cd makefs
-        $ make uninstall
-
 ## Notes
 
 + Build confirmed on Fedora, Ubuntu, Cygwin, FreeBSD, NetBSD, OpenBSD, DragonFly BSD on x86_64.
@@ -103,9 +103,9 @@
 
 ## License
 
-+ Files under [src/gpl](src/gpl) and [src/usr.sbin/makefs/exfat.c](src/usr.sbin/makefs/exfat.c) are under [GPL v2](src/gpl/github.com/relan/exfat/COPYING).
++ Files under [src/gpl](src/gpl) and [src/usr.sbin/makefs/exfat_gpl.c](src/usr.sbin/makefs/exfat_gpl.c) are under [GPL v2](src/gpl/github.com/relan/exfat/COPYING).
 
-+ [HAMMER2](src/usr.sbin/makefs/hammer2) and other files derived from DragonFly BSD are under [BSDL](COPYRIGHT.dragonfly).
++ [HAMMER2](src/usr.sbin/makefs/hammer2) and other files derived from DragonFly BSD are under [BSDL](src/usr.sbin/makefs/hammer2/COPYRIGHT).
 
 + All other files are under [BSDL](COPYRIGHT).
 
