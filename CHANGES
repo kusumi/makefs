@@ -1,3 +1,9 @@
+r9
+======
+- Silence compile warnings
+- Sync with FreeBSD
+- Sync HAMMER2 with DragonFly BSD
+
 r8
 ======
 - Sync with FreeBSD

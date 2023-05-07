@@ -44,7 +44,7 @@ if [ "${MNT_DIR}" = "" ]; then
 fi
 
 # helper functions
-print_dirhash() {
+run_dirhash() {
 	DIR=$1
 	if [ -x "${DIRHASH}" ]; then
 		${DIRHASH} -squash -verbose ${DIR} || exit 1
@@ -55,7 +55,7 @@ unmount() {
 	DIR=$1
 	mount | grep ${DIR}
 	if [ $? -eq 0 ]; then
-		print_dirhash ${DIR}
+		run_dirhash ${DIR}
 		umount ${DIR} || exit 1
 	fi
 }
@@ -69,8 +69,7 @@ unlink() {
 
 freebsd_init_mdconfig() {
 	FILE=$1
-	NAME=`mdconfig ${FILE}` || exit 1
-	echo ${NAME}
+	mdconfig ${FILE} || exit 1
 }
 
 freebsd_cleanup_mdconfig() {
@@ -109,16 +108,20 @@ atexit() {
 }
 trap atexit EXIT
 
-if [ "${MAKEFS}" = "" ]; then
-	MAKEFS=./src/makefs
-fi
-
 if [ "${MDNAME}" = "" ]; then
 	MDNAME=md0
 fi
 
 if [ "${VNNAME}" = "" ]; then
 	VNNAME=vn0
+fi
+
+if [ "${MAKEFS}" = "" ]; then
+	MAKEFS=./src/makefs
+fi
+if [ ! -x ${MAKEFS} ]; then
+	echo "No such exeutable ${MAKEFS}"
+	exit 1
 fi
 
 # 4.4BSD FFS

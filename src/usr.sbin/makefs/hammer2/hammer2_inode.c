@@ -1718,7 +1718,7 @@ hammer2_inode_chain_ins(hammer2_inode_t *ip)
 			error = 0;
 		if (error) {
 			kprintf("hammer2: backend unable to "
-				"insert inode %p %ld\n", ip, ip->meta.inum);
+				"insert inode %p %ld\n", ip, (long)ip->meta.inum);
 			/* XXX return error somehow? */
 		}
 	}
@@ -1757,7 +1757,7 @@ hammer2_inode_chain_des(hammer2_inode_t *ip)
 			error = 0;
 		if (error) {
 			kprintf("hammer2: backend unable to "
-				"delete inode %p %ld\n", ip, ip->meta.inum);
+				"delete inode %p %ld\n", ip, (long)ip->meta.inum);
 			/* XXX return error somehow? */
 		}
 	}
@@ -1811,6 +1811,9 @@ vflush(struct m_mount *mp, int rootrefs, int flags)
 	struct m_vnode *vp;
 	hammer2_key_t count_before, count_after, count_delta;
 
+	printf("%s: total chain %ld\n", __func__, hammer2_chain_allocs);
+	printf("%s: total dio %d\n", __func__, hammer2_dio_count);
+
 	hammer2_spin_ex(&pmp->inum_spin);
 	count_before = 0;
 	RB_FOREACH(ip, hammer2_inode_tree, &pmp->inum_tree)
@@ -1835,8 +1838,8 @@ vflush(struct m_mount *mp, int rootrefs, int flags)
 		count_after++;
 	hammer2_spin_unex(&pmp->inum_spin);
 
-	printf("%s: total inode %ld -> %ld\n",
-	    __func__, count_before, count_after);
+	printf("%s: total inode %jd -> %jd\n",
+	    __func__, (intmax_t)count_before, (intmax_t)count_after);
 
 	assert(count_before >= count_after);
 	count_delta = count_before - count_after;
@@ -1845,7 +1848,8 @@ vflush(struct m_mount *mp, int rootrefs, int flags)
 		if (hammer2_debug & 0x80000000)
 			assert(0);
 		else
-			printf("%s: %ld inode freed\n", __func__, count_delta);
+			printf("%s: %jd inode freed\n", __func__,
+			    (intmax_t)count_delta);
 	}
 
 	return 0;

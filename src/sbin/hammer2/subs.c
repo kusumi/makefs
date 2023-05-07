@@ -215,7 +215,7 @@ check_volume(int fd)
 		 */
 		if (pinfo.reserved_blocks) {
 			errx(1, "HAMMER2 cannot be placed in a partition "
-			    "which overlaps the disklabel or MBR");
+				"which overlaps the disklabel or MBR");
 		}
 		if (pinfo.media_blksize > HAMMER2_PBUFSIZE ||
 		    HAMMER2_PBUFSIZE % pinfo.media_blksize) {

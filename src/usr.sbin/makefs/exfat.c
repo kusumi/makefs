@@ -158,7 +158,7 @@ exfat_init_image(const char *image, fsinfo_t *fsopts)
 		err(1, "failed to open %s", image);
 
 	if (fsopts->sparse) {
-		printf("ftruncate(%d, 0x%lx)\n", fd, size);
+		printf("ftruncate(%d, 0x%llx)\n", fd, (long long)size);
 		if (ftruncate(fd, size) == -1)
 			err(1, "ftruncate failed");
 	} else {
@@ -188,10 +188,10 @@ exfat_makefs(const char *image, const char *dir, fsnode *root, fsinfo_t *fsopts)
 	assert(fsopts != NULL);
 
 	printf("image=\"%s\" directory=\"%s\"\n", image, dir);
-	printf("create_size=0x%lx\n", exfat_opts->create_size);
+	printf("create_size=0x%llx\n", (long long)exfat_opts->create_size);
 	printf("volume_label=%s\n", exfat_opts->volume_label);
 	printf("volume_serial=0x%x\n", exfat_opts->volume_serial);
-	printf("first_sector=%ld\n", exfat_opts->first_sector);
+	printf("first_sector=%lld\n", (long long)exfat_opts->first_sector);
 	printf("spc_bits=%d\n", exfat_opts->spc_bits);
 
 	if (exfat_init_image(image, fsopts))

@@ -36,7 +36,9 @@
 #include <sys/compat.h>
 #include <sys/types.h>
 #include <sys/time.h>
-//#include <sys/sysctl.h>
+#ifdef __DragonFly__
+#include <sys/sysctl.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,10 +71,14 @@ static int
 get_hammer2_version(void)
 {
 	int version = HAMMER2_VOL_VERSION_DEFAULT;
-	//size_t olen = sizeof(version);
+#ifdef __DragonFly__
+	size_t olen = sizeof(version);
 
-	if (0 /*sysctlbyname("vfs.hammer2.supported_version",
-			 &version, &olen, NULL, 0) == 0*/) {
+	if (sysctlbyname("vfs.hammer2.supported_version",
+			 &version, &olen, NULL, 0) == 0) {
+#else
+	if (0) {
+#endif
 		if (version >= HAMMER2_VOL_VERSION_WIP) {
 			version = HAMMER2_VOL_VERSION_WIP - 1;
 			fprintf(stderr,

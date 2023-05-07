@@ -28,14 +28,19 @@ fi
 if [ "${MAKEFS}" = "" ]; then
 	MAKEFS=./src/makefs
 fi
+if [ ! -x ${MAKEFS} ]; then
+	echo "No such exeutable ${MAKEFS}"
+	exit 1
+fi
 
 # helper functions
 run_fsck() {
 	BIN=$1
 	OPT=$2
+	FILE=$3
 	which ${BIN} >/dev/null 2>&1
 	if [ $? -eq 0 ]; then
-		${BIN} ${OPT} ${IMG_FILE}
+		${BIN} ${OPT} ${FILE}
 	fi
 }
 
@@ -78,7 +83,7 @@ echo
 echo "### HAMMER2"
 ${MAKEFS} -Z -t hammer2 ${IMG_FILE} ${SRC_DIR} || exit 1
 file ${IMG_FILE} || exit 1
-run_fsck fsck_hammer2
+run_fsck fsck_hammer2 "" ${IMG_FILE}
 rm ${IMG_FILE} || exit 1
 echo
 
