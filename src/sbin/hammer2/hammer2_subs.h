@@ -66,7 +66,11 @@ typedef struct hammer2_ondisk {
 /*
  * Misc functions
  */
+const char *hammer2_time64_to_str(uint64_t htime64, char **strp);
 const char *hammer2_uuid_to_str(const hammer2_uuid_t *uuid, char **strp);
+const char *hammer2_iptype_to_str(uint8_t type);
+const char *hammer2_pfstype_to_str(uint8_t type);
+const char *hammer2_pfssubtype_to_str(uint8_t subtype);
 const char *sizetostr(hammer2_off_t size);
 hammer2_off_t check_volume(int fd);
 hammer2_key_t dirhash(const char *aname, size_t len);

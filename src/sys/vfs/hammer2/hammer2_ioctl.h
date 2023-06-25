@@ -39,6 +39,17 @@
 #include <sys/param.h>
 #include <limits.h>
 
+#ifdef __CYGWIN__
+#define __USE_LINUX_IOCTL_DEFS
+#endif
+#if defined __linux__ || defined __CYGWIN__
+#include <sys/ioctl.h>
+#endif
+
+#if defined __FreeBSD__ || __NetBSD__ || __OpenBSD__ || __DragonFly__
+#include <sys/ioccom.h>
+#endif
+
 #ifndef _VFS_HAMMER2_DISK_H_
 #include "hammer2_disk.h"
 #endif
@@ -95,8 +106,8 @@ struct hammer2_ioc_pfs {
 	uint8_t			reserved0013;
 	uint32_t		pfs_flags;
 	uint64_t		reserved0018;
-	uuid_t			pfs_fsid;	/* identifies PFS instance */
-	uuid_t			pfs_clid;	/* identifies PFS cluster */
+	hammer2_uuid_t		pfs_fsid;	/* identifies PFS instance */
+	hammer2_uuid_t		pfs_clid;	/* identifies PFS cluster */
 	char			name[NAME_MAX+1]; /* PFS label */
 };
 
@@ -224,5 +235,7 @@ typedef struct hammer2_ioc_volume_list hammer2_ioc_volume_list_t;
 #define HAMMER2IOC_EMERG_MODE	_IOWR('h', 95, int)
 #define HAMMER2IOC_GROWFS	_IOWR('h', 96, struct hammer2_ioc_growfs)
 #define HAMMER2IOC_VOLUME_LIST	_IOWR('h', 97, struct hammer2_ioc_volume_list)
+
+#define HAMMER2IOC_READ		_IOWR('h', 999, int)
 
 #endif /* !_VFS_HAMMER2_IOCTL_H_ */

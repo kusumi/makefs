@@ -41,6 +41,8 @@ run_fsck() {
 	which ${BIN} >/dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		${BIN} ${OPT} ${FILE}
+	else
+		echo "${BIN} not found"
 	fi
 }
 
@@ -83,6 +85,65 @@ echo
 echo "### HAMMER2"
 ${MAKEFS} -Z -t hammer2 ${IMG_FILE} ${SRC_DIR} || exit 1
 file ${IMG_FILE} || exit 1
+echo
+${MAKEFS} -t hammer2 -o B ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o B ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o B ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o G ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=lookup:DATA ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=create:pfs ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=snapshot ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=snapshot:LOCAL_snapshot -o m=LOCAL ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=get ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=delete:pfs ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=delete:LOCAL_snapshot ${IMG_FILE} __ || exit 1
+echo
+${MAKEFS} -t hammer2 -o P=get ${IMG_FILE} __ || exit 1
+echo
+if [ "${IMG_FILE_PATH}" != "" ]; then
+	${MAKEFS} -t hammer2 -o I=get:${IMG_FILE_PATH} ${IMG_FILE} __ || exit 1
+	echo
+	${MAKEFS} -t hammer2 -o I=get://${IMG_FILE_PATH}// ${IMG_FILE} __ || exit 1
+	echo
+	${MAKEFS} -t hammer2 -o I=setcheck:${IMG_FILE_PATH}:sha192 ${IMG_FILE} __ || exit 1
+	echo
+	${MAKEFS} -t hammer2 -o I=setcheck://${IMG_FILE_PATH}//:sha192 ${IMG_FILE} __ || exit 1
+	echo
+	${MAKEFS} -t hammer2 -o I=setcomp:${IMG_FILE_PATH}:zlib:9 ${IMG_FILE} __ || exit 1
+	echo
+	${MAKEFS} -t hammer2 -o I=setcomp://${IMG_FILE_PATH}//:zlib:9 ${IMG_FILE} __ || exit 1
+	echo
+
+	OUT_DIR=${HOME}/__makefs/out
+	mkdir -p ${OUT_DIR} || exit 1
+	${MAKEFS} -t hammer2 -o R=${IMG_FILE_PATH} ${IMG_FILE} ${OUT_DIR} || exit 1
+	F1=${SRC_DIR}/${IMG_FILE_PATH}
+	F2=${OUT_DIR}/`basename ${IMG_FILE_PATH}`
+	stat ${F1} || exit 1
+	stat ${F2} || exit 1
+	diff ${F1} ${F2} || exit 1
+	cmp ${F1} ${F2} || exit 1
+	echo
+
+	${MAKEFS} -t hammer2 -o D=/${IMG_FILE_PATH} ${IMG_FILE} __ || exit 1 # need leading /
+	echo
+	${MAKEFS} -t hammer2 -o D=//${IMG_FILE_PATH}// ${IMG_FILE} __ && exit 1 # need leading /
+	echo
+	${MAKEFS} -t hammer2 -o I=get:${IMG_FILE_PATH} ${IMG_FILE} __ && exit 1
+	echo
+	${MAKEFS} -t hammer2 -o I=get://${IMG_FILE_PATH}// ${IMG_FILE} __ && exit 1
+	echo
+fi
 run_fsck fsck_hammer2 "" ${IMG_FILE}
 rm ${IMG_FILE} || exit 1
 echo

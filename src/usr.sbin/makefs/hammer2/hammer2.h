@@ -137,6 +137,7 @@
 #include <string.h>
 
 #include <vfs/hammer2/hammer2_disk.h>
+#include <vfs/hammer2/hammer2_ioctl.h>
 #include <vfs/hammer2/hammer2_mount.h>
 #include <vfs/hammer2/hammer2_xxhash.h>
 #include <vfs/hammer2/hammer2_rb.h>
@@ -696,6 +697,7 @@ typedef struct hammer2_cluster	hammer2_cluster_t;
 RB_HEAD(hammer2_inode_tree, hammer2_inode);	/* ip->rbnode */
 TAILQ_HEAD(inoq_head, hammer2_inode);		/* ip->entry */
 TAILQ_HEAD(depq_head, hammer2_depend);		/* depend->entry */
+TAILQ_HEAD(recq_head, hammer2_inode);		/* ip->recq_entry */
 
 struct hammer2_depend {
 	TAILQ_ENTRY(hammer2_depend) entry;
@@ -717,6 +719,7 @@ typedef struct hammer2_depend hammer2_depend_t;
 struct hammer2_inode {
 	RB_ENTRY(hammer2_inode) rbnode;		/* inumber lookup (HL) */
 	TAILQ_ENTRY(hammer2_inode) entry;	/* SYNCQ/SIDEQ */
+	TAILQ_ENTRY(hammer2_inode) recq_entry;	/* makefs */
 	hammer2_depend_t	*depend;	/* non-NULL if SIDEQ */
 	hammer2_depend_t	depend_static;	/* (in-place allocation) */
 	hammer2_mtx_t		lock;		/* inode lock */
@@ -1265,6 +1268,7 @@ struct hammer2_pfs {
 	int			has_xop_threads;
 	hammer2_spin_t		xop_spin;	/* xop sequencer */
 	hammer2_xop_group_t	*xop_groups;
+	struct recq_head	recq;		/* makefs */
 };
 
 typedef struct hammer2_pfs hammer2_pfs_t;
@@ -1660,6 +1664,18 @@ void hammer2_trans_assert_strategy(hammer2_pfs_t *pmp);
  */
 int hammer2_ioctl(hammer2_inode_t *ip, u_long com, void *data,
 				int fflag, struct ucred *cred);
+int hammer2_ioctl_version_get(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_pfs_get(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_pfs_lookup(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_pfs_create(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_pfs_delete(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_pfs_snapshot(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_inode_get(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_inode_set(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_emerg_mode(hammer2_inode_t *ip, u_int mode);
+int hammer2_ioctl_bulkfree_scan(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_destroy(hammer2_inode_t *ip, void *data);
+int hammer2_ioctl_growfs(hammer2_inode_t *ip, void *data, struct ucred *cred);
 
 /*
  * hammer2_io.c
@@ -1955,12 +1971,10 @@ int hammer2_cluster_check(hammer2_cluster_t *cluster, hammer2_key_t lokey,
 			int flags);
 void hammer2_cluster_unlock(hammer2_cluster_t *cluster);
 
-/*
 void hammer2_bulkfree_init(hammer2_dev_t *hmp);
 void hammer2_bulkfree_uninit(hammer2_dev_t *hmp);
 int hammer2_bulkfree_pass(hammer2_dev_t *hmp, hammer2_chain_t *vchain,
 			struct hammer2_ioc_bulkfree *bfi);
-*/
 void hammer2_dummy_xop_from_chain(hammer2_xop_head_t *xop,
 			hammer2_chain_t *chain);
 
@@ -2002,6 +2016,8 @@ hammer2_vfsvolume_t *hammer2_get_volume(hammer2_dev_t *hmp, hammer2_off_t offset
  * hammer2_vnops.c
  */
 int hammer2_reclaim(struct m_vnode *vp);
+int hammer2_readlink(struct m_vnode *vp, void *buf, size_t size);
+int hammer2_read(struct m_vnode *vp, void *buf, size_t size, off_t offset);
 int hammer2_write(struct m_vnode *vp, void *buf, size_t size, off_t offset);
 int hammer2_nresolve(struct m_vnode *dvp, struct m_vnode **vpp, char *name, int nlen);
 int hammer2_nmkdir(struct m_vnode *dvp, struct m_vnode **vpp, char *name, int nlen,
@@ -2070,18 +2086,6 @@ hammer2_knote(struct m_vnode *vp, int flags)
 {
 	if (flags)
 		KNOTE(&vp->v_pollinfo.vpi_kqinfo.ki_note, flags);
-}
-
-static __inline
-void
-hammer2_bulkfree_init(hammer2_dev_t *hmp)
-{
-}
-
-static __inline
-void
-hammer2_bulkfree_uninit(hammer2_dev_t *hmp)
-{
 }
 
 static __inline

@@ -257,12 +257,18 @@ DESCRIPTION
      vided.  The arguments consist of a keyword, an equal sign (`='), and a
      value.  The following keywords are supported:
 
+     Note that for offline operations, image-file must be a valid HAMMER2 im-
+     age file or block device.  directory is unused, but still needs to be ei-
+     ther any valid path or `--' or `__'.  Also see hammer2(8).
+
            b                     Boot area size.  See newfs_hammer2(8) for de-
                                  tails.
            r                     Aux area size.  See newfs_hammer2(8) for de-
                                  tails.
            V                     File system version.  See newfs_hammer2(8)
-                                 for details.
+                                 for details.  Print file system version of
+                                 image-file and exit if no argument is speci-
+                                 fied.
            L                     PFS Label.  See newfs_hammer2(8) for details.
                                  Unlike newfs_hammer2(8), always defaults to
                                  "DATA".
@@ -274,6 +280,32 @@ DESCRIPTION
            d                     sysctl vfs.hammer2.debug compatible tunable
                                  for debug prints.  Specify 0xffffffff to en-
                                  able all debug prints.  Defaults to 0.
+           E                     Set emergency mode.
+           P                     Run offline PFS command and exit.  This op-
+                                 tion takes PFS command name argument.  Avail-
+                                 able PFS command names are get (alias list),
+                                 lookup, create, delete and snapshot.  lookup,
+                                 create and delete take `:<pfs_name>' string
+                                 after PFS command name.  snapshot takes op-
+                                 tional `:<pfs_name>' string after PFS command
+                                 name.  Use -o m option to specify target PFS
+                                 for snapshot.
+           I                     Run offline inode command and exit.  This op-
+                                 tion takes inode command name argument.
+                                 Available inode command names are get,
+                                 setcheck and setcomp.  get takes `:<in-
+                                 ode_path>' string after command name.
+                                 setcheck takes `:<inode_path>:<check_algo>'
+                                 string after command name.  setcomp takes
+                                 `:<inode_path>:<comp_algo>[:<comp_level>]'
+                                 string after command name.
+           B                     Run offline bulkfree and exit.
+           D                     Run offline destroy and exit.  This option
+                                 takes file path or inode number argument.
+                                 The file path argument must start with `/'.
+           G                     Run offline growfs and exit.  By default ex-
+                                 pands to image-file file or device size, un-
+                                 less size is specified by -s option.
 
    exfat-specific options
      exfat images have exFAT-specific optional parameters that may be pro-
@@ -318,4 +350,4 @@ AUTHORS
      Christos Zoulas (msdos support),
      Tomohiro Kusumi (Linux port, exfat support, hammer2 support).
 
-BSD                           September 17, 2020                           BSD
+BSD                              June 17, 2023                             BSD

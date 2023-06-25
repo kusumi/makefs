@@ -39,11 +39,15 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#ifdef __DragonFly__
+#include <sys/sysctl.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
@@ -53,10 +57,13 @@
 
 #include "makefs.h"
 #include "hammer2.h"
+#include "hammer2_subs.h"
 
 #define APRINTF(X, ...)	\
     printf("%s: " X, __func__, ## __VA_ARGS__)
 
+static void hammer2_parse_pfs_opts(const char *, fsinfo_t *);
+static void hammer2_parse_inode_opts(const char *, fsinfo_t *);
 static void hammer2_dump_fsinfo(fsinfo_t *);
 static int hammer2_create_image(const char *, fsinfo_t *);
 static int hammer2_populate_dir(struct m_vnode *, const char *, fsnode *,
@@ -64,6 +71,21 @@ static int hammer2_populate_dir(struct m_vnode *, const char *, fsnode *,
 static void hammer2_validate(const char *, fsnode *, fsinfo_t *);
 static void hammer2_size_dir(fsnode *, fsinfo_t *);
 static int hammer2_write_file(struct m_vnode *, const char *, fsnode *);
+static int hammer2_version_get(struct m_vnode *);
+static int hammer2_pfs_get(struct m_vnode *);
+static int hammer2_pfs_lookup(struct m_vnode *, const char *);
+static int hammer2_pfs_create(struct m_vnode *, const char *);
+static int hammer2_pfs_delete(struct m_vnode *, const char *);
+static int hammer2_pfs_snapshot(struct m_vnode *, const char *, const char *);
+static int hammer2_inode_getx(struct m_vnode *, const char *);
+static int hammer2_inode_setcheck(struct m_vnode *, const char *);
+static int hammer2_inode_setcomp(struct m_vnode *, const char *);
+static int hammer2_bulkfree(struct m_vnode *);
+static int hammer2_destroy_path(struct m_vnode *, const char *);
+static int hammer2_destroy_inum(struct m_vnode *, hammer2_tid_t);
+static int hammer2_growfs(struct m_vnode *, hammer2_off_t);
+static int hammer2_readx(struct m_vnode *, const char *, const char *);
+static void unittest_trim_slash(void);
 
 fsnode *hammer2_curnode;
 
@@ -84,6 +106,14 @@ hammer2_prep_opts(fsinfo_t *fsopts)
 		{ 'v', "NumVolhdr", &h2_opt->num_volhdr, OPT_INT32,
 		    1, HAMMER2_NUM_VOLHDRS, "number of volume headers" },
 		{ 'd', "Hammer2Debug", NULL, OPT_STRBUF, 0, 0, "debug tunable" },
+		{ 'E', "EmergencyMode", &h2_opt->emergency_mode, OPT_BOOL, 0, 0,
+		    "emergency mode" },
+		{ 'P', "PFS", NULL, OPT_STRBUF, 0, 0, "offline PFS" },
+		{ 'I', "Inode", NULL, OPT_STRBUF, 0, 0, "offline inode" },
+		{ 'B', "Bulkfree", NULL, OPT_STRBUF, 0, 0, "offline bulkfree" },
+		{ 'D', "Destroy", NULL, OPT_STRBUF, 0, 0, "offline destroy" },
+		{ 'G', "Growfs", NULL, OPT_STRBUF, 0, 0, "offline growfs" },
+		{ 'R', "Read", NULL, OPT_STRBUF, 0, 0, "offline read" },
 		{ .name = NULL },
 	};
 
@@ -146,12 +176,16 @@ hammer2_parse_opts(const char *option, fsinfo_t *fsopts)
 		    HAMMER2_AUX_MAX_BYTES, 2);
 		break;
 	case 'V':
-		opt->Hammer2Version = strtol(buf, NULL, 0);
-		if (opt->Hammer2Version < HAMMER2_VOL_VERSION_MIN ||
-		    opt->Hammer2Version >= HAMMER2_VOL_VERSION_WIP)
-			errx(1, "I don't understand how to format "
-			    "HAMMER2 version %d",
-			    opt->Hammer2Version);
+		if (strlen(buf) == 0) {
+			h2_opt->ioctl_cmd = HAMMER2IOC_VERSION_GET;
+		} else {
+			opt->Hammer2Version = strtol(buf, NULL, 0);
+			if (opt->Hammer2Version < HAMMER2_VOL_VERSION_MIN ||
+			    opt->Hammer2Version >= HAMMER2_VOL_VERSION_WIP)
+				errx(1, "I don't understand how to format "
+				    "HAMMER2 version %d",
+				    opt->Hammer2Version);
+		}
 		break;
 	case 'L':
 		h2_opt->label_specified = 1;
@@ -177,9 +211,50 @@ hammer2_parse_opts(const char *option, fsinfo_t *fsopts)
 	case 'd':
 		hammer2_debug = strtoll(buf, NULL, 0);
 		break;
+	case 'P':
+		if (strlen(buf) == 0)
+			errx(1, "PFS argument '%s' cannot be 0-length", buf);
+		hammer2_parse_pfs_opts(buf, fsopts);
+		break;
+	case 'I':
+		if (strlen(buf) == 0)
+			errx(1, "Inode argument '%s' cannot be 0-length", buf);
+		hammer2_parse_inode_opts(buf, fsopts);
+		break;
+	case 'B':
+		h2_opt->ioctl_cmd = HAMMER2IOC_BULKFREE_SCAN;
+		break;
+	case 'D':
+		h2_opt->ioctl_cmd = HAMMER2IOC_DESTROY;
+		if (strlen(buf) == 0)
+			errx(1, "Destroy argument '%s' cannot be 0-length", buf);
+		if (buf[0] == '/') {
+			strlcpy(h2_opt->destroy_path, buf,
+			    sizeof(h2_opt->destroy_path));
+		} else if (strncmp(buf, "0x", 2) == 0 ||
+		    (buf[0] >= '0' && buf[0] <= '9')) {
+			h2_opt->destroy_inum = strtoull(buf, NULL, 0);
+			if (errno)
+				err(1, "strtoull");
+		} else {
+			errx(1, "Invalid destroy argument %s", buf);
+		}
+		break;
+	case 'G':
+		h2_opt->ioctl_cmd = HAMMER2IOC_GROWFS;
+		break;
+	case 'R':
+		h2_opt->ioctl_cmd = HAMMER2IOC_READ;
+		if (strlen(buf) == 0)
+			errx(1, "Read argument '%s' cannot be 0-length", buf);
+		strlcpy(h2_opt->read_path, buf, sizeof(h2_opt->read_path));
+		break;
 	default:
 		break;
 	}
+
+	if (hammer2_debug && h2_opt->ioctl_cmd)
+		unittest_trim_slash();
 
 	return 1;
 }
@@ -201,9 +276,8 @@ hammer2_makefs(const char *image, const char *dir, fsnode *root,
 	assert(UIO_USERSPACE != UIO_NOCOPY);
 	assert(UIO_SYSSPACE != UIO_NOCOPY);
 
+	/* ioctl commands could have NULL dir / root */
 	assert(image != NULL);
-	assert(dir != NULL);
-	assert(root != NULL);
 	assert(fsopts != NULL);
 
 	if (debug & DEBUG_FS_MAKEFS)
@@ -215,11 +289,19 @@ hammer2_makefs(const char *image, const char *dir, fsnode *root,
 	hammer2_validate(dir, root, fsopts);
 	TIMER_RESULTS(start, "hammer2_validate");
 
-	/* create image */
-	TIMER_START(start);
-	if (hammer2_create_image(image, fsopts) == -1)
-		errx(1, "image file `%s' not created", image);
-	TIMER_RESULTS(start, "hammer2_create_image");
+	if (h2_opt->ioctl_cmd) {
+		/* open existing image */
+		fsopts->fd = open(image, O_RDWR);
+		if (fsopts->fd < 0)
+			err(1, "failed to open `%s'", image);
+	} else {
+		/* create image */
+		TIMER_START(start);
+		if (hammer2_create_image(image, fsopts) == -1)
+			errx(1, "image file `%s' not created", image);
+		TIMER_RESULTS(start, "hammer2_create_image");
+	}
+	assert(fsopts->fd > 0);
 
 	if (debug & DEBUG_FS_MAKEFS)
 		putchar('\n');
@@ -251,12 +333,154 @@ hammer2_makefs(const char *image, const char *dir, fsnode *root,
 	printf("root inode inum %lld, mode 0%o, refs %d\n",
 	    (long long)iroot->meta.inum, iroot->meta.mode, iroot->refs);
 
-	/* populate image */
-	printf("populating `%s'\n", image);
-	TIMER_START(start);
-	if (hammer2_populate_dir(vroot, dir, root, root, fsopts, 0))
-		errx(1, "image file `%s' not populated", image);
-	TIMER_RESULTS(start, "hammer2_populate_dir");
+	if (h2_opt->emergency_mode)
+		hammer2_ioctl_emerg_mode(iroot, 1);
+
+	switch (h2_opt->ioctl_cmd) {
+	case HAMMER2IOC_VERSION_GET:
+		printf("version get `%s'\n", image);
+		TIMER_START(start);
+		error = hammer2_version_get(vroot);
+		if (error)
+			errx(1, "version get `%s' failed '%s'", image,
+			    strerror(error));
+		TIMER_RESULTS(start, "hammer2_version_get");
+		break;
+	case HAMMER2IOC_PFS_GET:
+		printf("PFS %s `%s'\n", h2_opt->pfs_cmd_name, image);
+		TIMER_START(start);
+		error = hammer2_pfs_get(vroot);
+		if (error)
+			errx(1, "PFS %s`%s' failed '%s'", h2_opt->pfs_cmd_name,
+			    image, strerror(error));
+		TIMER_RESULTS(start, "hammer2_pfs_get");
+		break;
+	case HAMMER2IOC_PFS_LOOKUP:
+		printf("PFS %s `%s'\n", h2_opt->pfs_cmd_name, image);
+		TIMER_START(start);
+		error = hammer2_pfs_lookup(vroot, h2_opt->pfs_name);
+		if (error)
+			errx(1, "PFS %s`%s' failed '%s'", h2_opt->pfs_cmd_name,
+			    image, strerror(error));
+		TIMER_RESULTS(start, "hammer2_pfs_lookup");
+		break;
+	case HAMMER2IOC_PFS_CREATE:
+		printf("PFS %s `%s'\n", h2_opt->pfs_cmd_name, image);
+		TIMER_START(start);
+		error = hammer2_pfs_create(vroot, h2_opt->pfs_name);
+		if (error)
+			errx(1, "PFS %s`%s' failed '%s'", h2_opt->pfs_cmd_name,
+			    image, strerror(error));
+		TIMER_RESULTS(start, "hammer2_pfs_create");
+		break;
+	case HAMMER2IOC_PFS_DELETE:
+		printf("PFS %s `%s'\n", h2_opt->pfs_cmd_name, image);
+		TIMER_START(start);
+		error = hammer2_pfs_delete(vroot, h2_opt->pfs_name);
+		if (error)
+			errx(1, "PFS %s`%s' failed '%s'", h2_opt->pfs_cmd_name,
+			    image, strerror(error));
+		TIMER_RESULTS(start, "hammer2_pfs_delete");
+		break;
+	case HAMMER2IOC_PFS_SNAPSHOT:
+		printf("PFS %s `%s'\n", h2_opt->pfs_cmd_name, image);
+		TIMER_START(start);
+		error = hammer2_pfs_snapshot(vroot, h2_opt->pfs_name,
+		    h2_opt->mount_label);
+		if (error)
+			errx(1, "PFS %s`%s' failed '%s'", h2_opt->pfs_cmd_name,
+			    image, strerror(error));
+		TIMER_RESULTS(start, "hammer2_pfs_snapshot");
+		break;
+	case HAMMER2IOC_INODE_GET:
+		printf("inode %s `%s'\n", h2_opt->inode_cmd_name, image);
+		TIMER_START(start);
+		error = hammer2_inode_getx(vroot, h2_opt->inode_path);
+		if (error)
+			errx(1, "inode %s `%s' failed '%s'",
+			    h2_opt->inode_cmd_name, image, strerror(error));
+		TIMER_RESULTS(start, "hammer2_inode_getx");
+		break;
+	case HAMMER2IOC_INODE_SET:
+		printf("inode %s `%s'\n", h2_opt->inode_cmd_name, image);
+		TIMER_START(start);
+		if (!strcmp(h2_opt->inode_cmd_name, "setcheck")) {
+			error = hammer2_inode_setcheck(vroot,
+			    h2_opt->inode_path);
+			if (error)
+				errx(1, "inode %s `%s' failed '%s'",
+				    h2_opt->inode_cmd_name, image,
+				    strerror(error));
+		} else if (!strcmp(h2_opt->inode_cmd_name, "setcomp")) {
+			error = hammer2_inode_setcomp(vroot,
+			    h2_opt->inode_path);
+			if (error)
+				errx(1, "inode %s `%s' failed '%s'",
+				    h2_opt->inode_cmd_name, image,
+				    strerror(error));
+		} else {
+			assert(0);
+		}
+		TIMER_RESULTS(start, "hammer2_inode_setx");
+		break;
+	case HAMMER2IOC_BULKFREE_SCAN:
+		printf("bulkfree `%s'\n", image);
+		TIMER_START(start);
+		error = hammer2_bulkfree(vroot);
+		if (error)
+			errx(1, "bulkfree `%s' failed '%s'", image,
+			    strerror(error));
+		TIMER_RESULTS(start, "hammer2_bulkfree");
+		break;
+	case HAMMER2IOC_DESTROY:
+		TIMER_START(start);
+		if (strlen(h2_opt->destroy_path)) {
+			printf("destroy `%s' in `%s'\n",
+			    h2_opt->destroy_path, image);
+			error = hammer2_destroy_path(vroot,
+			    h2_opt->destroy_path);
+			if (error)
+				errx(1, "destroy `%s' in `%s' failed '%s'",
+				    h2_opt->destroy_path, image,
+				    strerror(error));
+		} else {
+			printf("destroy %lld in `%s'\n",
+			    (long long)h2_opt->destroy_inum, image);
+			error = hammer2_destroy_inum(vroot,
+			    h2_opt->destroy_inum);
+			if (error)
+				errx(1, "destroy %lld in `%s' failed '%s'",
+				    (long long)h2_opt->destroy_inum, image,
+				    strerror(error));
+		}
+		TIMER_RESULTS(start, "hammer2_destroy");
+		break;
+	case HAMMER2IOC_GROWFS:
+		printf("growfs `%s'\n", image);
+		TIMER_START(start);
+		error = hammer2_growfs(vroot, h2_opt->image_size);
+		if (error)
+			errx(1, "growfs `%s' failed '%s'", image,
+			    strerror(error));
+		TIMER_RESULTS(start, "hammer2_growfs");
+		break;
+	case HAMMER2IOC_READ:
+		printf("read `%s'\n", image);
+		TIMER_START(start);
+		error = hammer2_readx(vroot, dir, h2_opt->read_path);
+		if (error)
+			errx(1, "read `%s' failed '%s'", image,
+			    strerror(error));
+		TIMER_RESULTS(start, "hammer2_readx");
+		break;
+	default:
+		printf("populating `%s'\n", image);
+		TIMER_START(start);
+		if (hammer2_populate_dir(vroot, dir, root, root, fsopts, 0))
+			errx(1, "image file `%s' not populated", image);
+		TIMER_RESULTS(start, "hammer2_populate_dir");
+		break;
+	}
 
 	/* unmount image */
 	error = hammer2_vfs_unmount(&mp, 0);
@@ -283,6 +507,90 @@ hammer2_makefs(const char *image, const char *dir, fsnode *root,
 }
 
 /* end of public functions */
+
+static void
+hammer2_parse_pfs_opts(const char *buf, fsinfo_t *fsopts)
+{
+	hammer2_makefs_options_t *h2_opt = fsopts->fs_specific;
+	char *o, *p;
+	size_t n;
+
+	o = p = strdup(buf);
+	p = strchr(p, ':');
+	if (p != NULL) {
+		*p++ = 0;
+		n = strlen(p);
+	} else {
+		n = 0;
+	}
+
+	if (!strcmp(o, "get") || !strcmp(o, "list")) {
+		h2_opt->ioctl_cmd = HAMMER2IOC_PFS_GET;
+	} else if (!strcmp(o, "lookup")) {
+		if (n == 0 || n > NAME_MAX)
+			errx(1, "invalid PFS name \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_PFS_LOOKUP;
+	} else if (!strcmp(o, "create")) {
+		if (n == 0 || n > NAME_MAX)
+			errx(1, "invalid PFS name \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_PFS_CREATE;
+	} else if (!strcmp(o, "delete")) {
+		if (n == 0 || n > NAME_MAX)
+			errx(1, "invalid PFS name \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_PFS_DELETE;
+	} else if (!strcmp(o, "snapshot")) {
+		if (n > NAME_MAX)
+			errx(1, "invalid PFS name \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_PFS_SNAPSHOT;
+	} else {
+		errx(1, "invalid PFS command \"%s\"", o);
+	}
+
+	strlcpy(h2_opt->pfs_cmd_name, o, sizeof(h2_opt->pfs_cmd_name));
+	if (n > 0)
+		strlcpy(h2_opt->pfs_name, p, sizeof(h2_opt->pfs_name));
+
+	free(o);
+}
+
+static void
+hammer2_parse_inode_opts(const char *buf, fsinfo_t *fsopts)
+{
+	hammer2_makefs_options_t *h2_opt = fsopts->fs_specific;
+	char *o, *p;
+	size_t n;
+
+	o = p = strdup(buf);
+	p = strchr(p, ':');
+	if (p != NULL) {
+		*p++ = 0;
+		n = strlen(p);
+	} else {
+		n = 0;
+	}
+
+	if (!strcmp(o, "get")) {
+		if (n == 0 || n > PATH_MAX)
+			errx(1, "invalid file path \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_INODE_GET;
+	} else if (!strcmp(o, "setcheck")) {
+		if (n == 0 || n > PATH_MAX - 10)
+			errx(1, "invalid argument \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_INODE_SET;
+	} else if (!strcmp(o, "setcomp")) {
+		if (n == 0 || n > PATH_MAX - 10)
+			errx(1, "invalid argument \"%s\"", p);
+		h2_opt->ioctl_cmd = HAMMER2IOC_INODE_SET;
+	} else {
+		errx(1, "invalid inode command \"%s\"", o);
+	}
+
+	strlcpy(h2_opt->inode_cmd_name, o, sizeof(h2_opt->inode_cmd_name));
+	if (n > 0)
+		strlcpy(h2_opt->inode_path, p, sizeof(h2_opt->inode_path));
+
+	free(o);
+}
 
 static hammer2_off_t
 hammer2_image_size(fsinfo_t *fsopts)
@@ -361,11 +669,10 @@ hammer2_validate(const char *dir, fsnode *root, fsinfo_t *fsopts)
 {
 	hammer2_makefs_options_t *h2_opt = fsopts->fs_specific;
 	hammer2_mkfs_options_t *opt = &h2_opt->mkfs_options;
-	hammer2_off_t image_size, minsize, maxsize;
+	hammer2_off_t image_size = 0, minsize, maxsize;
 	const char *s;
 
-	assert(dir != NULL);
-	assert(root != NULL);
+	/* ioctl commands could have NULL dir / root */
 	assert(fsopts != NULL);
 
 	if (debug & DEBUG_FS_VALIDATE) {
@@ -393,9 +700,19 @@ hammer2_validate(const char *dir, fsnode *root, fsinfo_t *fsopts)
 		printf("using default %d volume headers\n", h2_opt->num_volhdr);
 	}
 
+	/* done if ioctl commands */
+	if (h2_opt->ioctl_cmd) {
+		if (h2_opt->ioctl_cmd == HAMMER2IOC_GROWFS)
+			goto ignore_size_dir;
+		else
+			goto done;
+	}
+
 	/* calculate data size */
 	if (fsopts->size != 0)
 		fsopts->size = 0; /* shouldn't reach here to begin with */
+	if (root == NULL)
+		errx(1, "fsnode tree not constructed");
 	hammer2_size_dir(root, fsopts);
 	printf("estimated data size %s from %lld inode\n",
 	    sizetostr(fsopts->size), (long long)fsopts->inodes);
@@ -403,7 +720,7 @@ hammer2_validate(const char *dir, fsnode *root, fsinfo_t *fsopts)
 	/* determine image size from data size */
 	image_size = hammer2_image_size(fsopts);
 	assert((image_size & HAMMER2_FREEMAP_LEVEL1_MASK) == 0);
-
+ignore_size_dir:
 	minsize = roundup(fsopts->minsize, HAMMER2_FREEMAP_LEVEL1_SIZE);
 	maxsize = roundup(fsopts->maxsize, HAMMER2_FREEMAP_LEVEL1_SIZE);
 	if (image_size < minsize)
@@ -415,7 +732,7 @@ hammer2_validate(const char *dir, fsnode *root, fsinfo_t *fsopts)
 	assert((image_size & HAMMER2_FREEMAP_LEVEL1_MASK) == 0);
 	h2_opt->image_size = image_size;
 	printf("using %s image size\n", sizetostr(h2_opt->image_size));
-
+done:
 	if (debug & DEBUG_FS_VALIDATE) {
 		APRINTF("after defaults set:\n");
 		hammer2_dump_fsinfo(fsopts);
@@ -445,6 +762,14 @@ hammer2_dump_fsinfo(fsinfo_t *fsopts)
 	printf("\tlabel_specified %d\n", h2_opt->label_specified);
 	printf("\tmount_label \"%s\"\n", h2_opt->mount_label);
 	printf("\tnum_volhdr %d\n", h2_opt->num_volhdr);
+	printf("\tioctl_cmd %ld\n", h2_opt->ioctl_cmd);
+	printf("\temergency_mode %d\n", h2_opt->emergency_mode);
+	printf("\tpfs_cmd_name \"%s\"\n", h2_opt->pfs_cmd_name);
+	printf("\tpfs_name \"%s\"\n", h2_opt->pfs_name);
+	printf("\tinode_cmd_name \"%s\"\n", h2_opt->inode_cmd_name);
+	printf("\tinode_path \"%s\"\n", h2_opt->inode_path);
+	printf("\tdestroy_path \"%s\"\n", h2_opt->destroy_path);
+	printf("\tdestroy_inum %lld\n", (long long)h2_opt->destroy_inum);
 	printf("\timage_size 0x%llx\n", (long long)h2_opt->image_size);
 
 	printf("\tHammer2Version %d\n", opt->Hammer2Version);
@@ -723,8 +1048,13 @@ hammer2_populate_dir(struct m_vnode *dvp, const char *dir, fsnode *root,
 			}
 			path = f;
 		}
-		if (stat(path, &st) == -1)
-			err(1, "no such file %s", f);
+		if (S_ISLNK(cur->type)) {
+			if (lstat(path, &st) == -1)
+				err(1, "no such symlink %s", path);
+		} else {
+			if (stat(path, &st) == -1)
+				err(1, "no such path %s", path);
+		}
 
 		/* update node state */
 		if ((cur->inode->flags & FI_ALLOCATED) == 0) {
@@ -898,4 +1228,920 @@ hammer2_write_file(struct m_vnode *vp, const char *path, fsnode *node)
 	munmap(p, nsize);
 
 	return 0;
+}
+
+static int
+trim_char(char *p, char c)
+{
+	char *o, tmp[PATH_MAX];
+	bool prev_was_c;
+	size_t n;
+	int i;
+
+	strlcpy(tmp, p, sizeof(tmp));
+	if (strncmp(tmp, p, sizeof(tmp)))
+		return ENOSPC;
+
+	/* trim consecutive */
+	prev_was_c = false;
+	o = p;
+	n = strlen(p);
+
+	for (i = 0; i < n; i++) {
+		if (tmp[i] == c) {
+			if (!prev_was_c)
+				*p++ = tmp[i];
+			prev_was_c = true;
+		} else {
+			*p++ = tmp[i];
+			prev_was_c = false;
+		}
+	}
+	*p = 0;
+	assert(strlen(p) <= strlen(tmp));
+
+	/* assert no consecutive */
+	prev_was_c = false;
+	p = o;
+	n = strlen(p);
+
+	for (i = 0; i < n; i++) {
+		if (p[i] == c) {
+			assert(!prev_was_c);
+			prev_was_c = true;
+		} else {
+			prev_was_c = false;
+		}
+	}
+
+	/* trim leading */
+	if (*p == c)
+		memmove(p, p + 1, strlen(p + 1) + 1);
+	assert(*p != '/');
+
+	/* trim trailing */
+	p += strlen(p);
+	p--;
+	if (*p == c)
+		*p = 0;
+	assert(p[strlen(p) - 1] != '/');
+
+	return 0;
+}
+
+static int
+trim_slash(char *p)
+{
+	return trim_char(p, '/');
+}
+
+static bool
+is_supported_link(const char *s)
+{
+	/* absolute path can't be supported */
+	if (strlen(s) >= 1 && strncmp(s, "/", 1) == 0)
+		return false;
+
+	/* XXX ".." is currently unsupported */
+	if (strlen(s) >= 3 && strncmp(s, "../", 3) == 0)
+		return false;
+
+	return true;
+}
+
+static int
+hammer2_version_get(struct m_vnode *vp)
+{
+	hammer2_dev_t *hmp;
+
+	hmp = VTOI(vp)->pmp->pfs_hmps[0];
+	if (hmp == NULL)
+		return EINVAL;
+
+	printf("version: %d\n", hmp->voldata.version);
+
+	return 0;
+}
+
+struct pfs_entry {
+	TAILQ_ENTRY(pfs_entry) entry;
+	char name[NAME_MAX+1];
+	char s[NAME_MAX+1];
+};
+
+static int
+hammer2_pfs_get(struct m_vnode *vp)
+{
+	hammer2_ioc_pfs_t pfs;
+	TAILQ_HEAD(, pfs_entry) head;
+	struct pfs_entry *p, *e;
+	char *pfs_id_str;
+	const char *type_str;
+	int error;
+
+	bzero(&pfs, sizeof(pfs));
+	TAILQ_INIT(&head);
+
+	while ((pfs.name_key = pfs.name_next) != (hammer2_key_t)-1) {
+		error = hammer2_ioctl_pfs_get(VTOI(vp), &pfs);
+		if (error)
+			return error;
+
+		pfs_id_str = NULL;
+		hammer2_uuid_to_str(&pfs.pfs_clid, &pfs_id_str);
+
+		if (pfs.pfs_type == HAMMER2_PFSTYPE_MASTER) {
+			if (pfs.pfs_subtype == HAMMER2_PFSSUBTYPE_NONE)
+				type_str = "MASTER";
+			else
+				type_str = hammer2_pfssubtype_to_str(
+				    pfs.pfs_subtype);
+		} else {
+			type_str = hammer2_pfstype_to_str(pfs.pfs_type);
+		}
+		e = ecalloc(1, sizeof(*e));
+		snprintf(e->name, sizeof(e->name), "%s", pfs.name);
+		snprintf(e->s, sizeof(e->s), "%-11s %s", type_str, pfs_id_str);
+		free(pfs_id_str);
+
+		p = TAILQ_FIRST(&head);
+		while (p) {
+			if (strcmp(e->name, p->name) <= 0) {
+				TAILQ_INSERT_BEFORE(p, e, entry);
+				break;
+			}
+			p = TAILQ_NEXT(p, entry);
+		}
+		if (!p)
+			TAILQ_INSERT_TAIL(&head, e, entry);
+	}
+
+	printf("Type        "
+	    "ClusterId (pfs_clid)                 "
+	    "Label\n");
+	while ((p = TAILQ_FIRST(&head)) != NULL) {
+		printf("%s %s\n", p->s, p->name);
+		TAILQ_REMOVE(&head, p, entry);
+		free(p);
+	}
+
+	return 0;
+}
+
+static int
+hammer2_pfs_lookup(struct m_vnode *vp, const char *pfs_name)
+{
+	hammer2_ioc_pfs_t pfs;
+	char *pfs_id_str;
+	int error;
+
+	bzero(&pfs, sizeof(pfs));
+	strlcpy(pfs.name, pfs_name, sizeof(pfs.name));
+
+	error = hammer2_ioctl_pfs_lookup(VTOI(vp), &pfs);
+	if (error == 0) {
+		printf("name: %s\n", pfs.name);
+		printf("type: %s\n", hammer2_pfstype_to_str(pfs.pfs_type));
+		printf("subtype: %s\n",
+		    hammer2_pfssubtype_to_str(pfs.pfs_subtype));
+
+		pfs_id_str = NULL;
+		hammer2_uuid_to_str(&pfs.pfs_fsid, &pfs_id_str);
+		printf("fsid: %s\n", pfs_id_str);
+		free(pfs_id_str);
+
+		pfs_id_str = NULL;
+		hammer2_uuid_to_str(&pfs.pfs_clid, &pfs_id_str);
+		printf("clid: %s\n", pfs_id_str);
+		free(pfs_id_str);
+	}
+
+	return error;
+}
+
+static int
+hammer2_pfs_create(struct m_vnode *vp, const char *pfs_name)
+{
+	hammer2_ioc_pfs_t pfs;
+	int error;
+
+	bzero(&pfs, sizeof(pfs));
+	strlcpy(pfs.name, pfs_name, sizeof(pfs.name));
+	pfs.pfs_type = HAMMER2_PFSTYPE_MASTER;
+	hammer2_uuid_create(&pfs.pfs_clid);
+	hammer2_uuid_create(&pfs.pfs_fsid);
+
+	error = hammer2_ioctl_pfs_create(VTOI(vp), &pfs);
+	if (error == EEXIST)
+		fprintf(stderr,
+		    "NOTE: Typically the same name is "
+		    "used for cluster elements on "
+		    "different mounts,\n"
+		    "      but cluster elements on the "
+		    "same mount require unique names.\n"
+		    "hammer2: pfs_create(%s): already present\n",
+		    pfs_name);
+
+	return error;
+}
+
+static int
+hammer2_pfs_delete(struct m_vnode *vp, const char *pfs_name)
+{
+	hammer2_ioc_pfs_t pfs;
+
+	bzero(&pfs, sizeof(pfs));
+	strlcpy(pfs.name, pfs_name, sizeof(pfs.name));
+
+	return hammer2_ioctl_pfs_delete(VTOI(vp), &pfs);
+}
+
+static int
+hammer2_pfs_snapshot(struct m_vnode *vp, const char *pfs_name,
+    const char *mount_label)
+{
+	hammer2_ioc_pfs_t pfs;
+	struct tm *tp;
+	time_t t;
+
+	bzero(&pfs, sizeof(pfs));
+	strlcpy(pfs.name, pfs_name, sizeof(pfs.name));
+
+	if (strlen(pfs.name) == 0) {
+		time(&t);
+		tp = localtime(&t);
+		snprintf(pfs.name, sizeof(pfs.name),
+		    "%s.%04d%02d%02d.%02d%02d%02d",
+		    mount_label,
+		    tp->tm_year + 1900,
+		    tp->tm_mon + 1,
+		    tp->tm_mday,
+		    tp->tm_hour,
+		    tp->tm_min,
+		    tp->tm_sec);
+	}
+
+	return hammer2_ioctl_pfs_snapshot(VTOI(vp), &pfs);
+}
+
+static int
+hammer2_inode_getx(struct m_vnode *dvp, const char *f)
+{
+	hammer2_ioc_inode_t inode;
+	hammer2_inode_t *ip;
+	hammer2_inode_meta_t *meta;
+	struct m_vnode *vp;
+	char *o, *p, *name, *str = NULL;
+	char tmp[PATH_MAX];
+	int error;
+	hammer2_uuid_t uuid;
+
+	assert(strlen(f) > 0);
+	o = p = name = strdup(f);
+
+	error = trim_slash(p);
+	if (error)
+		return error;
+	if (strlen(p) == 0)
+		return EINVAL;
+
+	while ((p = strchr(p, '/')) != NULL) {
+		*p++ = 0; /* NULL terminate name */
+		if (!strcmp(name, ".")) {
+			name = p;
+			continue;
+		}
+		vp = NULL;
+		error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+		if (error)
+			return error;
+
+		ip = VTOI(vp);
+		switch (ip->meta.type) {
+		case HAMMER2_OBJTYPE_DIRECTORY:
+			break;
+		case HAMMER2_OBJTYPE_SOFTLINK:
+			bzero(tmp, sizeof(tmp));
+			error = hammer2_readlink(vp, tmp, sizeof(tmp));
+			if (error)
+				return error;
+			if (!is_supported_link(tmp))
+				return EINVAL;
+			strlcat(tmp, "/", sizeof(tmp));
+			strlcat(tmp, p, sizeof(tmp));
+			error = trim_slash(tmp);
+			if (error)
+				return error;
+			p = name = tmp;
+			continue;
+		default:
+			return EINVAL;
+		}
+
+		dvp = vp;
+		name = p;
+	}
+
+	error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+	if (error)
+		return error;
+
+	bzero(&inode, sizeof(inode));
+	error = hammer2_ioctl_inode_get(VTOI(vp), &inode);
+	if (error)
+		return error;
+
+	meta = &inode.ip_data.meta;
+	printf("--------------------\n");
+	printf("flags = 0x%x\n", inode.flags);
+	printf("data_count = %ju\n", (uintmax_t)inode.data_count);
+	printf("inode_count = %ju\n", (uintmax_t)inode.inode_count);
+	printf("--------------------\n");
+	printf("version = %u\n", meta->version);
+	printf("pfs_subtype = %u (%s)\n", meta->pfs_subtype,
+	    hammer2_pfssubtype_to_str(meta->pfs_subtype));
+	printf("uflags = 0x%x\n", (unsigned int)meta->uflags);
+	printf("rmajor = %u\n", meta->rmajor);
+	printf("rminor = %u\n", meta->rminor);
+	printf("ctime = %s\n", hammer2_time64_to_str(meta->ctime, &str));
+	printf("mtime = %s\n", hammer2_time64_to_str(meta->mtime, &str));
+	printf("atime = %s\n", hammer2_time64_to_str(meta->atime, &str));
+	printf("btime = %s\n", hammer2_time64_to_str(meta->btime, &str));
+	uuid = meta->uid;
+	printf("uid = %s\n", hammer2_uuid_to_str(&uuid, &str));
+	uuid = meta->gid;
+	printf("gid = %s\n", hammer2_uuid_to_str(&uuid, &str));
+	printf("type = %u (%s)\n", meta->type,
+	    hammer2_iptype_to_str(meta->type));
+	printf("op_flags = 0x%x\n", meta->op_flags);
+	printf("cap_flags = 0x%x\n", meta->cap_flags);
+	printf("mode = 0%o\n", meta->mode);
+	printf("inum = 0x%jx\n", (uintmax_t)meta->inum);
+	printf("size = %ju\n", (uintmax_t)meta->size);
+	printf("nlinks = %ju\n", (uintmax_t)meta->nlinks);
+	printf("iparent = 0x%jx\n", (uintmax_t)meta->iparent);
+	printf("name_key = 0x%jx\n", (uintmax_t)meta->name_key);
+	printf("name_len = %u\n", meta->name_len);
+	printf("ncopies = %u\n", meta->ncopies);
+	printf("comp_algo = %u\n", meta->comp_algo);
+	printf("target_type = %u\n", meta->target_type);
+	printf("check_algo = %u\n", meta->check_algo);
+	printf("pfs_nmasters = %u\n", meta->pfs_nmasters);
+	printf("pfs_type = %u (%s)\n", meta->pfs_type,
+	    hammer2_pfstype_to_str(meta->pfs_type));
+	printf("pfs_inum = 0x%jx\n", (uintmax_t)meta->pfs_inum);
+	uuid = meta->pfs_clid;
+	printf("pfs_clid = %s\n", hammer2_uuid_to_str(&uuid, &str));
+	uuid = meta->pfs_fsid;
+	printf("pfs_fsid = %s\n", hammer2_uuid_to_str(&uuid, &str));
+	printf("data_quota = 0x%jx\n", (uintmax_t)meta->data_quota);
+	printf("inode_quota = 0x%jx\n", (uintmax_t)meta->inode_quota);
+	printf("pfs_lsnap_tid = 0x%jx\n", (uintmax_t)meta->pfs_lsnap_tid);
+	printf("decrypt_check = 0x%jx\n", (uintmax_t)meta->decrypt_check);
+	printf("--------------------\n");
+
+	free(o);
+
+	return error;
+}
+
+static int
+hammer2_inode_setcheck(struct m_vnode *dvp, const char *f)
+{
+	hammer2_ioc_inode_t inode;
+	hammer2_inode_t *ip;
+	struct m_vnode *vp;
+	char *o, *p, *name, *check_algo_str;
+	char tmp[PATH_MAX];
+	const char *checks[] = { "none", "disabled", "crc32", "xxhash64",
+	    "sha192", };
+	int check_algo_idx, error;
+	uint8_t check_algo;
+
+	assert(strlen(f) > 0);
+	o = p = strdup(f);
+
+	p = strrchr(p, ':');
+	if (p == NULL)
+		return EINVAL;
+
+	*p++ = 0; /* NULL terminate path */
+	check_algo_str = p;
+	name = p = o;
+
+	error = trim_slash(p);
+	if (error)
+		return error;
+	if (strlen(p) == 0 || strlen(check_algo_str) == 0)
+		return EINVAL;
+
+	/* convert check_algo_str to check_algo_idx */
+	check_algo_idx = nitems(checks);
+	while (--check_algo_idx >= 0)
+		if (strcasecmp(check_algo_str, checks[check_algo_idx]) == 0)
+			break;
+	if (check_algo_idx < 0) {
+		if (strcasecmp(check_algo_str, "default") == 0) {
+			check_algo_str = "xxhash64";
+			check_algo_idx = HAMMER2_CHECK_XXHASH64;
+		} else if (strcasecmp(check_algo_str, "disabled") == 0) {
+			check_algo_str = "disabled";
+			check_algo_idx = HAMMER2_CHECK_DISABLED;
+		} else {
+			printf("invalid check_algo_str: %s\n", check_algo_str);
+			return EINVAL;
+		}
+	}
+	check_algo = HAMMER2_ENC_ALGO(check_algo_idx);
+	printf("change %s to algo %d (%s)\n", p, check_algo, check_algo_str);
+
+	while ((p = strchr(p, '/')) != NULL) {
+		*p++ = 0; /* NULL terminate name */
+		if (!strcmp(name, ".")) {
+			name = p;
+			continue;
+		}
+		vp = NULL;
+		error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+		if (error)
+			return error;
+
+		ip = VTOI(vp);
+		switch (ip->meta.type) {
+		case HAMMER2_OBJTYPE_DIRECTORY:
+			break;
+		case HAMMER2_OBJTYPE_SOFTLINK:
+			bzero(tmp, sizeof(tmp));
+			error = hammer2_readlink(vp, tmp, sizeof(tmp));
+			if (error)
+				return error;
+			if (!is_supported_link(tmp))
+				return EINVAL;
+			strlcat(tmp, "/", sizeof(tmp));
+			strlcat(tmp, p, sizeof(tmp));
+			error = trim_slash(tmp);
+			if (error)
+				return error;
+			p = name = tmp;
+			continue;
+		default:
+			return EINVAL;
+		}
+
+		dvp = vp;
+		name = p;
+	}
+
+	error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+	if (error)
+		return error;
+	ip = VTOI(vp);
+
+	bzero(&inode, sizeof(inode));
+	error = hammer2_ioctl_inode_get(ip, &inode);
+	if (error)
+		return error;
+
+	inode.flags |= HAMMER2IOC_INODE_FLAG_CHECK;
+	inode.ip_data.meta.check_algo = check_algo;
+	error = hammer2_ioctl_inode_set(ip, &inode);
+	if (error)
+		return error;
+
+	free(o);
+
+	return error;
+}
+
+static int
+hammer2_inode_setcomp(struct m_vnode *dvp, const char *f)
+{
+	hammer2_ioc_inode_t inode;
+	hammer2_inode_t *ip;
+	struct m_vnode *vp;
+	char *o, *p, *name, *comp_algo_str, *comp_level_str;
+	char tmp[PATH_MAX];
+	const char *comps[] = { "none", "autozero", "lz4", "zlib", };
+	int comp_algo_idx, comp_level_idx, error;
+	uint8_t comp_algo, comp_level;
+
+	assert(strlen(f) > 0);
+	o = p = strdup(f);
+
+	p = strrchr(p, ':');
+	if (p == NULL)
+		return EINVAL;
+
+	*p++ = 0; /* NULL terminate comp_algo_str */
+	comp_level_str = p;
+	p = o;
+
+	p = strrchr(p, ':');
+	if (p == NULL) {
+		/* comp_level_str not specified */
+		comp_algo_str = comp_level_str;
+		comp_level_str = NULL;
+	} else {
+		*p++ = 0; /* NULL terminate path */
+		comp_algo_str = p;
+	}
+	name = p = o;
+
+	error = trim_slash(p);
+	if (error)
+		return error;
+	if (strlen(p) == 0 || strlen(comp_algo_str) == 0)
+		return EINVAL;
+
+	/* convert comp_algo_str to comp_algo_idx */
+	comp_algo_idx = nitems(comps);
+	while (--comp_algo_idx >= 0)
+		if (strcasecmp(comp_algo_str, comps[comp_algo_idx]) == 0)
+			break;
+	if (comp_algo_idx < 0) {
+		if (strcasecmp(comp_algo_str, "default") == 0) {
+			comp_algo_str = "lz4";
+			comp_algo_idx = HAMMER2_COMP_LZ4;
+		} else if (strcasecmp(comp_algo_str, "disabled") == 0) {
+			comp_algo_str = "autozero";
+			comp_algo_idx = HAMMER2_COMP_AUTOZERO;
+		} else {
+			printf("invalid comp_algo_str: %s\n", comp_algo_str);
+			return EINVAL;
+		}
+	}
+	comp_algo = HAMMER2_ENC_ALGO(comp_algo_idx);
+
+	/* convert comp_level_str to comp_level_idx */
+	if (comp_level_str == NULL) {
+		comp_level_idx = 0;
+	} else if (isdigit((int)comp_level_str[0])) {
+		comp_level_idx = strtol(comp_level_str, NULL, 0);
+	} else if (strcasecmp(comp_level_str, "default") == 0) {
+		comp_level_idx = 0;
+	} else {
+		printf("invalid comp_level_str: %s\n", comp_level_str);
+		return EINVAL;
+	}
+	if (comp_level_idx) {
+		switch (comp_algo) {
+		case HAMMER2_COMP_ZLIB:
+			if (comp_level_idx < 6 || comp_level_idx > 9) {
+				printf("unsupported comp_level %d for %s\n",
+				    comp_level_idx, comp_algo_str);
+				return EINVAL;
+			}
+			break;
+		default:
+			printf("unsupported comp_level %d for %s\n",
+			    comp_level_idx, comp_algo_str);
+			return EINVAL;
+		}
+	}
+	comp_level = HAMMER2_ENC_LEVEL(comp_level_idx);
+	printf("change %s to algo %d (%s) level %d\n",
+	    p, comp_algo, comp_algo_str, comp_level_idx);
+
+	while ((p = strchr(p, '/')) != NULL) {
+		*p++ = 0; /* NULL terminate name */
+		if (!strcmp(name, ".")) {
+			name = p;
+			continue;
+		}
+		vp = NULL;
+		error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+		if (error)
+			return error;
+
+		ip = VTOI(vp);
+		switch (ip->meta.type) {
+		case HAMMER2_OBJTYPE_DIRECTORY:
+			break;
+		case HAMMER2_OBJTYPE_SOFTLINK:
+			bzero(tmp, sizeof(tmp));
+			error = hammer2_readlink(vp, tmp, sizeof(tmp));
+			if (error)
+				return error;
+			if (!is_supported_link(tmp))
+				return EINVAL;
+			strlcat(tmp, "/", sizeof(tmp));
+			strlcat(tmp, p, sizeof(tmp));
+			error = trim_slash(tmp);
+			if (error)
+				return error;
+			p = name = tmp;
+			continue;
+		default:
+			return EINVAL;
+		}
+
+		dvp = vp;
+		name = p;
+	}
+
+	error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+	if (error)
+		return error;
+	ip = VTOI(vp);
+
+	bzero(&inode, sizeof(inode));
+	error = hammer2_ioctl_inode_get(ip, &inode);
+	if (error)
+		return error;
+
+	inode.flags |= HAMMER2IOC_INODE_FLAG_COMP;
+	inode.ip_data.meta.comp_algo = comp_algo | comp_level;
+	error = hammer2_ioctl_inode_set(ip, &inode);
+	if (error)
+		return error;
+
+	free(o);
+
+	return error;
+}
+
+static int
+hammer2_bulkfree(struct m_vnode *vp)
+{
+	hammer2_ioc_bulkfree_t bfi;
+#ifdef __DragonFly__
+	size_t usermem;
+	size_t usermem_size = sizeof(usermem);
+#endif
+	bzero(&bfi, sizeof(bfi));
+#ifdef __DragonFly__
+	usermem = 0;
+	if (sysctlbyname("hw.usermem", &usermem, &usermem_size, NULL, 0) == 0)
+		bfi.size = usermem / 16;
+	else
+		bfi.size = 0;
+#endif
+	if (bfi.size < 8192 * 1024)
+		bfi.size = 8192 * 1024;
+
+	return hammer2_ioctl_bulkfree_scan(VTOI(vp), &bfi);
+}
+
+static int
+hammer2_destroy_path(struct m_vnode *dvp, const char *f)
+{
+	hammer2_ioc_destroy_t destroy;
+	hammer2_inode_t *ip;
+	struct m_vnode *vp;
+	char *o, *p, *name;
+	char tmp[PATH_MAX];
+	int error;
+
+	assert(strlen(f) > 0);
+	o = p = name = strdup(f);
+
+	error = trim_slash(p);
+	if (error)
+		return error;
+	if (strlen(p) == 0)
+		return EINVAL;
+
+	while ((p = strchr(p, '/')) != NULL) {
+		*p++ = 0; /* NULL terminate name */
+		if (!strcmp(name, ".")) {
+			name = p;
+			continue;
+		}
+		vp = NULL;
+		error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+		if (error)
+			return error;
+
+		ip = VTOI(vp);
+		switch (ip->meta.type) {
+		case HAMMER2_OBJTYPE_DIRECTORY:
+			break;
+		case HAMMER2_OBJTYPE_SOFTLINK:
+			bzero(tmp, sizeof(tmp));
+			error = hammer2_readlink(vp, tmp, sizeof(tmp));
+			if (error)
+				return error;
+			if (!is_supported_link(tmp))
+				return EINVAL;
+			strlcat(tmp, "/", sizeof(tmp));
+			strlcat(tmp, p, sizeof(tmp));
+			error = trim_slash(tmp);
+			if (error)
+				return error;
+			p = name = tmp;
+			continue;
+		default:
+			return EINVAL;
+		}
+
+		dvp = vp;
+		name = p;
+	}
+
+	/* XXX When does (or why does not) ioctl modify this inode ? */
+	hammer2_inode_modify(VTOI(dvp));
+
+	bzero(&destroy, sizeof(destroy));
+	destroy.cmd = HAMMER2_DELETE_FILE;
+	snprintf(destroy.path, sizeof(destroy.path), "%s", name);
+
+	printf("%s\t", f);
+	fflush(stdout);
+
+	error = hammer2_ioctl_destroy(VTOI(dvp), &destroy);
+	if (error)
+		printf("%s\n", strerror(error));
+	else
+		printf("ok\n");
+	free(o);
+
+	return error;
+}
+
+static int
+hammer2_destroy_inum(struct m_vnode *vp, hammer2_tid_t inum)
+{
+	hammer2_ioc_destroy_t destroy;
+	int error;
+
+	bzero(&destroy, sizeof(destroy));
+	destroy.cmd = HAMMER2_DELETE_INUM;
+	destroy.inum = inum;
+
+	printf("%jd\t", (intmax_t)destroy.inum);
+	fflush(stdout);
+
+	error = hammer2_ioctl_destroy(VTOI(vp), &destroy);
+	if (error)
+		printf("%s\n", strerror(error));
+	else
+		printf("ok\n");
+
+	return error;
+}
+
+static int
+hammer2_growfs(struct m_vnode *vp, hammer2_off_t size)
+{
+	hammer2_ioc_growfs_t growfs;
+	int error;
+
+	bzero(&growfs, sizeof(growfs));
+	growfs.size = size;
+
+	error = hammer2_ioctl_growfs(VTOI(vp), &growfs, NULL);
+	if (!error) {
+		if (growfs.modified)
+			printf("grown to %016jx\n", (intmax_t)growfs.size);
+		else
+			printf("no size change - %016jx\n",
+			    (intmax_t)growfs.size);
+	}
+
+	return error;
+}
+
+static int
+hammer2_readx(struct m_vnode *dvp, const char *dir, const char *f)
+{
+	hammer2_inode_t *ip;
+	struct m_vnode *vp;
+	char *o, *p, *name, *buf;
+	char tmp[PATH_MAX], out[PATH_MAX];
+	size_t resid, n;
+	off_t offset;
+	int fd, error;
+
+	if (dir == NULL)
+		return EINVAL;
+
+	assert(strlen(f) > 0);
+	o = p = name = strdup(f);
+
+	error = trim_slash(p);
+	if (error)
+		return error;
+	if (strlen(p) == 0)
+		return EINVAL;
+
+	while ((p = strchr(p, '/')) != NULL) {
+		*p++ = 0; /* NULL terminate name */
+		if (!strcmp(name, ".")) {
+			name = p;
+			continue;
+		}
+		vp = NULL;
+		error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+		if (error)
+			return error;
+
+		ip = VTOI(vp);
+		switch (ip->meta.type) {
+		case HAMMER2_OBJTYPE_DIRECTORY:
+			break;
+		case HAMMER2_OBJTYPE_SOFTLINK:
+			bzero(tmp, sizeof(tmp));
+			error = hammer2_readlink(vp, tmp, sizeof(tmp));
+			if (error)
+				return error;
+			if (!is_supported_link(tmp))
+				return EINVAL;
+			strlcat(tmp, "/", sizeof(tmp));
+			strlcat(tmp, p, sizeof(tmp));
+			error = trim_slash(tmp);
+			if (error)
+				return error;
+			p = name = tmp;
+			continue;
+		default:
+			return EINVAL;
+		}
+
+		dvp = vp;
+		name = p;
+	}
+
+	error = hammer2_nresolve(dvp, &vp, name, strlen(name));
+	if (error)
+		return error;
+	ip = VTOI(vp);
+
+	snprintf(out, sizeof(out), "%s/%s", dir, name);
+	fd = open(out, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	if (fd == -1)
+		err(1, "failed to create %s", out);
+
+	buf = calloc(1, HAMMER2_PBUFSIZE);
+	resid = ip->meta.size;
+	offset = 0;
+
+	while (resid > 0) {
+		bzero(buf, HAMMER2_PBUFSIZE);
+		error = hammer2_read(vp, buf, HAMMER2_PBUFSIZE, offset);
+		if (error)
+			errx(1, "failed to read from %s", name);
+
+		n = resid >= HAMMER2_PBUFSIZE ? HAMMER2_PBUFSIZE : resid;
+		error = write(fd, buf, n);
+		if (error == -1)
+			err(1, "failed to write to %s", out);
+		else if (error != n)
+			return EINVAL;
+
+		resid -= n;
+		offset += HAMMER2_PBUFSIZE;
+	}
+	fsync(fd);
+	close(fd);
+
+	free(buf);
+	free(o);
+
+	return 0;
+}
+
+static void
+assert_trim_slash(const char *input, const char *expected)
+{
+	char tmp[PATH_MAX];
+	int error;
+
+	strlcpy(tmp, input, sizeof(tmp));
+	error = trim_slash(tmp);
+	if (error)
+		errx(1, "input \"%s\" error %d", input, error);
+
+	if (strncmp(tmp, expected, sizeof(tmp)))
+		errx(1, "input \"%s\" result \"%s\" vs expected \"%s\"",
+		    input, tmp, expected);
+}
+
+static void
+unittest_trim_slash(void)
+{
+	assert_trim_slash("", "");
+	assert_trim_slash("/", "");
+	assert_trim_slash("//", "");
+	assert_trim_slash("///", "");
+
+	assert_trim_slash("makefs", "makefs");
+	assert_trim_slash("/makefs", "makefs");
+	assert_trim_slash("//makefs", "makefs");
+	assert_trim_slash("makefs/", "makefs");
+	assert_trim_slash("makefs//", "makefs");
+	assert_trim_slash("/makefs/", "makefs");
+	assert_trim_slash("//makefs//", "makefs");
+
+	assert_trim_slash("sys/vfs/hammer2", "sys/vfs/hammer2");
+	assert_trim_slash("/sys/vfs/hammer2", "sys/vfs/hammer2");
+	assert_trim_slash("//sys/vfs/hammer2", "sys/vfs/hammer2");
+	assert_trim_slash("///sys/vfs/hammer2", "sys/vfs/hammer2");
+	assert_trim_slash("sys/vfs/hammer2/", "sys/vfs/hammer2");
+	assert_trim_slash("sys/vfs/hammer2//", "sys/vfs/hammer2");
+	assert_trim_slash("sys/vfs/hammer2///", "sys/vfs/hammer2");
+	assert_trim_slash("/sys/vfs/hammer2/", "sys/vfs/hammer2");
+	assert_trim_slash("//sys//vfs//hammer2//", "sys/vfs/hammer2");
+	assert_trim_slash("///sys///vfs///hammer2///", "sys/vfs/hammer2");
+
+	APRINTF("success\n");
 }

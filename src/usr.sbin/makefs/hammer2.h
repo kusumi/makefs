@@ -35,6 +35,8 @@
 #ifndef _HAMMER2_H
 #define _HAMMER2_H
 
+#include <limits.h>
+
 #include "hammer2/hammer2.h"
 
 typedef struct {
@@ -42,6 +44,28 @@ typedef struct {
 	int label_specified;
 	char mount_label[HAMMER2_INODE_MAXNAME];
 	int num_volhdr;
+
+	/* HAMMER2IOC_xxx */
+	long ioctl_cmd;
+
+	/* HAMMER2IOC_EMERG_MODE */
+	bool emergency_mode;
+
+	/* HAMMER2IOC_PFS_xxx */
+	char pfs_cmd_name[NAME_MAX+1];
+	char pfs_name[NAME_MAX+1];
+
+	/* HAMMER2IOC_INODE_xxx */
+	char inode_cmd_name[NAME_MAX];
+	char inode_path[PATH_MAX];
+
+	/* HAMMER2IOC_DESTROY */
+	char destroy_path[PATH_MAX];
+	hammer2_tid_t destroy_inum;
+
+	/* HAMMER2IOC_READ */
+	char read_path[PATH_MAX];
+
 	hammer2_off_t image_size;
 } hammer2_makefs_options_t;
 

@@ -255,7 +255,7 @@ hammer2_getradix(size_t bytes)
 	int radix;
 
 	/*
-	 * Optimize the iteration by pre-checking commonly used radii.
+	 * Optimize the iteration by pre-checking commonly used radixes.
 	 */
 	if (bytes == HAMMER2_PBUFSIZE)
 		radix = HAMMER2_PBUFRADIX;
@@ -321,13 +321,29 @@ hammer2_calc_physical(hammer2_inode_t *ip, hammer2_key_t lbase)
 
 extern fsnode *hammer2_curnode;
 
+static void
+hammer2_get_curtime(uint64_t *timep)
+{
+	struct timeval ts;
+	int error;
+
+	error = gettimeofday(&ts, NULL);
+	KKASSERT(error == 0);
+	*timep = (unsigned long)ts.tv_sec * 1000000 + ts.tv_usec;
+}
+
 void
 hammer2_update_time(uint64_t *timep, bool is_mtime)
 {
 	struct timespec *ts;
 	struct stat *st;
 
-	assert(hammer2_curnode);
+	/* HAMMER2 ioctl commands */
+	if (hammer2_curnode == NULL) {
+		hammer2_get_curtime(timep);
+		return;
+	}
+
 	st = stampst.st_ino != 0 ? &stampst : &hammer2_curnode->inode->st;
 	ts = is_mtime ? &st->st_mtim : &st->st_ctim;
 
@@ -396,7 +412,6 @@ hammer2_adjwritecounter(int btype, size_t bytes)
 	*counterp += bytes;
 }
 
-#if 0
 /*
  * Check for pending signal to allow interruption.  This function will
  * return immediately if the calling thread is a kernel thread and not
@@ -405,6 +420,7 @@ hammer2_adjwritecounter(int btype, size_t bytes)
 int
 hammer2_signal_check(time_t *timep)
 {
+#if 0
 	thread_t td = curthread;
 	int error = 0;
 
@@ -419,8 +435,9 @@ hammer2_signal_check(time_t *timep)
 		lwkt_yield();
 	}
 	return error;
-}
 #endif
+	return 0;
+}
 
 const char *
 hammer2_error_str(int error)

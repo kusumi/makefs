@@ -38,7 +38,7 @@ ifeq ($(USE_HAMMER2), 1)
 	CFLAGS+=		-I../../sbin/hammer2 -I../../sbin/newfs_hammer2
 	SBIN_HAMMER2_OBJS+=	../../sbin/hammer2/ondisk.o ../../sbin/hammer2/subs.o ../../sbin/hammer2/uuid.o
 	NEWFS_HAMMER2_OBJS+=	../../sbin/newfs_hammer2/mkfs_hammer2.o
-	HAMMER2_OBJS+=		hammer2/hammer2_admin.o hammer2/hammer2_buf.o hammer2/hammer2_chain.o hammer2/hammer2_cluster.o hammer2/hammer2_flush.o hammer2/hammer2_freemap.o hammer2/hammer2_inode.o hammer2/hammer2_io.o hammer2/hammer2_lz4.o hammer2/hammer2_ondisk.o hammer2/hammer2_strategy.o hammer2/hammer2_subr.o hammer2/hammer2_vfsops.o hammer2/hammer2_vnops.o hammer2/hammer2_xops.o hammer2/zlib/hammer2_zlib_adler32.o hammer2/zlib/hammer2_zlib_deflate.o hammer2/zlib/hammer2_zlib_inffast.o hammer2/zlib/hammer2_zlib_inflate.o hammer2/zlib/hammer2_zlib_inftrees.o hammer2/zlib/hammer2_zlib_trees.o hammer2/zlib/hammer2_zlib_zutil.o ../../sys/vfs/hammer2/xxhash/xxhash.o ../../sys/libkern/icrc32.o
+	HAMMER2_OBJS+=		hammer2/hammer2_admin.o hammer2/hammer2_buf.o hammer2/hammer2_bulkfree.o hammer2/hammer2_chain.o hammer2/hammer2_cluster.o hammer2/hammer2_flush.o hammer2/hammer2_freemap.o hammer2/hammer2_inode.o hammer2/hammer2_io.o hammer2/hammer2_ioctl.o hammer2/hammer2_lz4.o hammer2/hammer2_ondisk.o hammer2/hammer2_strategy.o hammer2/hammer2_subr.o hammer2/hammer2_vfsops.o hammer2/hammer2_vnops.o hammer2/hammer2_xops.o hammer2/zlib/hammer2_zlib_adler32.o hammer2/zlib/hammer2_zlib_deflate.o hammer2/zlib/hammer2_zlib_inffast.o hammer2/zlib/hammer2_zlib_inflate.o hammer2/zlib/hammer2_zlib_inftrees.o hammer2/zlib/hammer2_zlib_trees.o hammer2/zlib/hammer2_zlib_zutil.o ../../sys/vfs/hammer2/xxhash/xxhash.o ../../sys/libkern/icrc32.o
 ifeq ($(UNAME), Linux)
 	LDLIBS+=	-luuid
 endif

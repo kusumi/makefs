@@ -49,6 +49,7 @@
 */
 
 #include "hammer2.h"
+#include "hammer2_subs.h"
 #include "makefs.h"
 
 #define hprintf(X, ...)	kprintf("hammer2_ondisk: " X, ## __VA_ARGS__)
@@ -206,10 +207,10 @@ static int
 hammer2_verify_volumes_common(const hammer2_vfsvolume_t *volumes)
 {
 	const hammer2_vfsvolume_t *vol;
+	hammer2_off_t size;
 	//struct partinfo part;
-	struct stat st;
 	const char *path;
-	int i, ret;
+	int i;
 
 	for (i = 0; i < HAMMER2_MAX_VOLUMES; ++i) {
 		vol = &volumes[i];
@@ -237,19 +238,11 @@ hammer2_verify_volumes_common(const hammer2_vfsvolume_t *volumes)
 			      curthread->td_ucred , NULL) == 0) {
 		*/
 		assert(vol->dev->devvp->fs);
-		ret = fstat(vol->dev->devvp->fs->fd, &st);
-		if (ret == -1) {
-			int error = errno;
-			hprintf("failed to fstat %d\n",
-				vol->dev->devvp->fs->fd);
-			return error;
-		} else {
-			if (vol->size > st.st_size) {
-				hprintf("%s's size 0x%016jx exceeds device size "
-					"0x%016jx\n", path, (intmax_t)vol->size,
-					st.st_size);
-				return EINVAL;
-			}
+		size = check_volume(vol->dev->devvp->fs->fd);
+		if (vol->size > size) {
+			hprintf("%s's size 0x%016jx exceeds device size "
+				"0x%016jx\n", path, (intmax_t)vol->size, size);
+			return EINVAL;
 		}
 	}
 

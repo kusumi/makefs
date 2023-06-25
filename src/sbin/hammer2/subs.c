@@ -79,6 +79,23 @@
 #include "hammer2_subs.h"
 
 const char *
+hammer2_time64_to_str(uint64_t htime64, char **strp)
+{
+	struct tm *tp;
+	time_t t;
+
+	if (*strp) {
+		free(*strp);
+		*strp = NULL;
+	}
+	*strp = malloc(64);
+	t = htime64 / 1000000;
+	tp = localtime(&t);
+	strftime(*strp, 64, "%d-%b-%Y %H:%M:%S", tp);
+	return (*strp);
+}
+
+const char *
 hammer2_uuid_to_str(const hammer2_uuid_t *uuid, char **strp)
 {
 	if (*strp) {
@@ -87,6 +104,73 @@ hammer2_uuid_to_str(const hammer2_uuid_t *uuid, char **strp)
 	}
 	hammer2_uuid_to_string(uuid, strp);
 	return (*strp);
+}
+
+const char *
+hammer2_iptype_to_str(uint8_t type)
+{
+	switch(type) {
+	case HAMMER2_OBJTYPE_UNKNOWN:
+		return("UNKNOWN");
+	case HAMMER2_OBJTYPE_DIRECTORY:
+		return("DIR");
+	case HAMMER2_OBJTYPE_REGFILE:
+		return("FILE");
+	case HAMMER2_OBJTYPE_FIFO:
+		return("FIFO");
+	case HAMMER2_OBJTYPE_CDEV:
+		return("CDEV");
+	case HAMMER2_OBJTYPE_BDEV:
+		return("BDEV");
+	case HAMMER2_OBJTYPE_SOFTLINK:
+		return("SOFTLINK");
+	case HAMMER2_OBJTYPE_SOCKET:
+		return("SOCKET");
+	case HAMMER2_OBJTYPE_WHITEOUT:
+		return("WHITEOUT");
+	default:
+		return("ILLEGAL");
+	}
+}
+
+const char *
+hammer2_pfstype_to_str(uint8_t type)
+{
+	switch(type) {
+	case HAMMER2_PFSTYPE_NONE:
+		return("NONE");
+	case HAMMER2_PFSTYPE_SUPROOT:
+		return("SUPROOT");
+	case HAMMER2_PFSTYPE_DUMMY:
+		return("DUMMY");
+	case HAMMER2_PFSTYPE_CACHE:
+		return("CACHE");
+	case HAMMER2_PFSTYPE_SLAVE:
+		return("SLAVE");
+	case HAMMER2_PFSTYPE_SOFT_SLAVE:
+		return("SOFT_SLAVE");
+	case HAMMER2_PFSTYPE_SOFT_MASTER:
+		return("SOFT_MASTER");
+	case HAMMER2_PFSTYPE_MASTER:
+		return("MASTER");
+	default:
+		return("ILLEGAL");
+	}
+}
+
+const char *
+hammer2_pfssubtype_to_str(uint8_t subtype)
+{
+	switch(subtype) {
+	case HAMMER2_PFSSUBTYPE_NONE:
+		return("NONE");
+	case HAMMER2_PFSSUBTYPE_SNAPSHOT:
+		return("SNAPSHOT");
+	case HAMMER2_PFSSUBTYPE_AUTOSNAP:
+		return("AUTOSNAP");
+	default:
+		return("ILLEGAL");
+	}
 }
 
 const char *
@@ -116,45 +200,28 @@ hammer2_off_t
 check_volume(int fd)
 {
 	struct stat st;
-	hammer2_off_t size;
+	hammer2_off_t size = 0;
 
 	/*
 	 * Get basic information about the volume
 	 */
 #if defined __linux__ || defined __CYGWIN__
-	if (ioctl(fd, BLKGETSIZE, &size) < 0) {
-		/*
-		 * Allow the formatting of regular files as HAMMER2 volumes
-		 */
-		if (fstat(fd, &st) < 0)
-			err(1, "Unable to stat fd %d", fd);
+	if (ioctl(fd, BLKGETSIZE, &size) == 0) {
+		int sector_size;
+		if (ioctl(fd, BLKSSZGET, &sector_size) < 0)
+			errx(1, "Failed to get media sector size");
+		if (sector_size > HAMMER2_PBUFSIZE ||
+		    HAMMER2_PBUFSIZE % sector_size)
+			errx(1, "A media sector size of %d is not supported",
+			    sector_size);
+		size <<= 9;
+	} else if (fstat(fd, &st) == 0) {
 		if (!S_ISREG(st.st_mode))
 			errx(1, "Unsupported file type for fd %d", fd);
 		size = st.st_size;
-	} else {
-		int sector_size;
-		if (ioctl(fd, BLKSSZGET, &sector_size) < 0) {
-			errx(1, "Failed to get media sector size");
-			/* not reached */
-		}
-		if (sector_size > HAMMER2_PBUFSIZE ||
-		    HAMMER2_PBUFSIZE % sector_size) {
-			errx(1, "A media sector size of %d is not supported",
-			     sector_size);
-		}
-		size <<= 9;
 	}
 #elif defined __FreeBSD__ || defined __NetBSD__
-	if (ioctl(fd, DIOCGMEDIASIZE, &size) < 0) {
-		/*
-		 * Allow the formatting of regular files as HAMMER2 volumes
-		 */
-		if (fstat(fd, &st) < 0)
-			err(1, "Unable to stat fd %d", fd);
-		if (!S_ISREG(st.st_mode))
-			errx(1, "Unsupported file type for fd %d", fd);
-		size = st.st_size;
-	} else {
+	if (ioctl(fd, DIOCGMEDIASIZE, &size) == 0) {
 		/*
 		 * When formatting a block device as a HAMMER2 volume the
 		 * sector size must be compatible.  HAMMER2 uses 64K
@@ -164,23 +231,17 @@ check_volume(int fd)
 		int media_blksize;
 		if (!ioctl(fd, DIOCGSECTORSIZE, &media_blksize) &&
 		    (media_blksize > HAMMER2_PBUFSIZE ||
-		    HAMMER2_PBUFSIZE % media_blksize)) {
+		    HAMMER2_PBUFSIZE % media_blksize))
 			errx(1, "A media sector size of %d is not supported",
-			     media_blksize);
-		}
-	}
-#elif defined __OpenBSD__
-	struct disklabel dl;
-	if (ioctl(fd, DIOCGDINFO, &dl) < 0) {
-		/*
-		 * Allow the formatting of regular files as HAMMER2 volumes
-		 */
-		if (fstat(fd, &st) < 0)
-			err(1, "Unable to stat fd %d", fd);
+			    media_blksize);
+	} else if (fstat(fd, &st) == 0) {
 		if (!S_ISREG(st.st_mode))
 			errx(1, "Unsupported file type for fd %d", fd);
 		size = st.st_size;
-	} else {
+	}
+#elif defined __OpenBSD__
+	struct disklabel dl;
+	if (ioctl(fd, DIOCGDINFO, &dl) == 0) {
 		/*
 		 * When formatting a block device as a HAMMER2 volume the
 		 * sector size must be compatible.  HAMMER2 uses 64K
@@ -190,43 +251,41 @@ check_volume(int fd)
 		int media_blksize = dl.d_secsize;
 		size = (hammer2_off_t)dl.d_secperunit * media_blksize;
 		if (media_blksize > HAMMER2_PBUFSIZE ||
-		    HAMMER2_PBUFSIZE % media_blksize) {
+		    HAMMER2_PBUFSIZE % media_blksize)
 			errx(1, "A media sector size of %d is not supported",
-			     media_blksize);
-		}
-	}
-#elif defined __DragonFly__
-	struct partinfo pinfo;
-	if (ioctl(fd, DIOCGPART, &pinfo) < 0) {
-		/*
-		 * Allow the formatting of regular files as HAMMER2 volumes
-		 */
-		if (fstat(fd, &st) < 0)
-			err(1, "Unable to stat fd %d", fd);
+			    media_blksize);
+	} else if (fstat(fd, &st) == 0) {
 		if (!S_ISREG(st.st_mode))
 			errx(1, "Unsupported file type for fd %d", fd);
 		size = st.st_size;
-	} else {
+	}
+#elif defined __DragonFly__
+	struct partinfo pinfo;
+	if (ioctl(fd, DIOCGPART, &pinfo) == 0) {
 		/*
 		 * When formatting a block device as a HAMMER2 volume the
 		 * sector size must be compatible.  HAMMER2 uses 64K
 		 * filesystem buffers but logical buffers for direct I/O
 		 * can be as small as HAMMER2_LOGSIZE (16KB).
 		 */
-		if (pinfo.reserved_blocks) {
+		if (pinfo.reserved_blocks)
 			errx(1, "HAMMER2 cannot be placed in a partition "
-				"which overlaps the disklabel or MBR");
-		}
+			    "which overlaps the disklabel or MBR");
 		if (pinfo.media_blksize > HAMMER2_PBUFSIZE ||
-		    HAMMER2_PBUFSIZE % pinfo.media_blksize) {
+		    HAMMER2_PBUFSIZE % pinfo.media_blksize)
 			errx(1, "A media sector size of %d is not supported",
-			     pinfo.media_blksize);
-		}
+			    pinfo.media_blksize);
 		size = pinfo.media_size;
+	} else if (fstat(fd, &st) == 0) {
+		if (!S_ISREG(st.st_mode))
+			errx(1, "Unsupported file type for fd %d", fd);
+		size = st.st_size;
 	}
 #else
 #error "Unsupported platform"
 #endif
+	if (size == 0)
+		errx(1, "Failed to get volume size for fd %d", fd);
 	return(size);
 }
 

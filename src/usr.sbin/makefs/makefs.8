@@ -35,7 +35,7 @@
 .\"
 .\" $FreeBSD$
 .\"
-.Dd September 17, 2020
+.Dd June 23, 2023
 .Dt MAKEFS 8
 .Os
 .Sh NAME
@@ -510,6 +510,14 @@ The arguments consist of a keyword, an equal sign
 and a value.
 The following keywords are supported:
 .Pp
+Note that for offline operations,
+.Ar image-file
+must be a valid HAMMER2 image file or block device.
+.Ar directory
+is usually unused, but still needs to be either any valid path or `--' or `__'.
+Also see
+.Xr hammer2 8 .
+.Pp
 .Bl -tag -width omit-trailing-period -offset indent -compact
 .It Cm b
 Boot area size.
@@ -526,6 +534,9 @@ File system version.
 See
 .Xr newfs_hammer2 8
 for details.
+Print file system version of
+.Ar image-file
+and exit if no argument is specified.
 .It Cm L
 PFS Label.
 See
@@ -544,6 +555,66 @@ Defaults to "DATA".
 sysctl vfs.hammer2.debug compatible tunable for debug prints.
 Specify 0xffffffff to enable all debug prints.
 Defaults to 0.
+.It Cm E
+Set emergency mode.
+.It Cm P
+Run offline PFS command and exit.
+This option takes PFS command name argument.
+Available PFS command names are
+.Ar get
+(alias
+.Ar list ) ,
+.Ar lookup ,
+.Ar create ,
+.Ar delete
+and
+.Ar snapshot .
+.Ar lookup ,
+.Ar create
+and
+.Ar delete
+take `:<pfs_name>' string after PFS command name.
+.Ar snapshot
+takes optional `:<pfs_name>' string after PFS command name.
+Use
+.Fl o
+m option to specify target PFS for
+.Ar snapshot .
+.It Cm I
+Run offline inode command and exit.
+This option takes inode command name argument.
+Available inode command names are
+.Ar get ,
+.Ar setcheck
+and
+.Ar setcomp .
+.Ar get
+takes `:<inode_path>' string after command name.
+.Ar setcheck
+takes `:<inode_path>:<check_algo>' string after command name.
+.Ar setcomp
+takes `:<inode_path>:<comp_algo>[:<comp_level>]' string after command name.
+.It Cm B
+Run offline bulkfree and exit.
+.It Cm D
+Run offline destroy and exit.
+This option takes file path or inode number argument.
+The file path argument must start with `/'.
+.It Cm G
+Run offline growfs and exit.
+By default expands to
+.Ar image-file
+file or device size, unless size is specified by
+.Fl s
+option.
+.It Cm R
+Run offline read and exit.
+This option takes file path argument within
+.Ar image-file ,
+and retrieves that file under
+.Ar directory .
+.Ar directory
+must exist.
 .El
 .Ss exfat-specific options
 .Sy exfat
