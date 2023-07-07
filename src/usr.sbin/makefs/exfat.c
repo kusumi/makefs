@@ -300,7 +300,8 @@ exfat_populate_dir(struct exfat *ef, const char *dir, fsnode *root,
 	for (fsnode *cur = root->next; cur != NULL; cur = cur->next) {
 		/* construct source path */
 		char f[MAXPATHLEN]; /* avoid stack ? */
-		int ret = snprintf(f, sizeof(f), "%s/%s", dir, cur->name);
+		int ret = snprintf(f, sizeof(f), "%s/%s/%s",
+		    cur->root, cur->path, cur->name);
 		if ((size_t)ret >= sizeof(f))
 			errx(1, "path %s too long", f);
 
@@ -309,8 +310,6 @@ exfat_populate_dir(struct exfat *ef, const char *dir, fsnode *root,
 			err(1, "no such file %s", f);
 
 		/* get pointer to exFAT path */
-		if (root == parent)
-			assert(!strcmp(dir, cur->root));
 		size_t baselen = strlen(cur->root);
 		if (baselen + 1 >= strlen(f))
 			errx(1, "baselen %ld too long", baselen);

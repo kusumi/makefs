@@ -8,7 +8,7 @@ fi
 UNAME=`uname` || exit 1
 if [[ ${UNAME} != Linux ]] && [[ ${UNAME} != FreeBSD ]] && [[ ${UNAME} != DragonFly ]]; then
 	echo "XXX ${UNAME}" # XXX
-	exit 1
+	exit 0
 fi
 
 [ -d "${HOME}" ] || exit 1
@@ -44,10 +44,16 @@ if [ "${MNT_DIR}" = "" ]; then
 fi
 
 # helper functions
+HASH_LIST=""
 run_dirhash() {
 	DIR=$1
 	if [ -x "${DIRHASH}" ]; then
-		${DIRHASH} -squash -verbose ${DIR} || exit 1
+		HASH=`${DIRHASH} -squash ${DIR}`
+		if [ $? -ne 0 ]; then
+			exit 1
+		fi
+		echo ${HASH}
+		HASH_LIST="${HASH_LIST} ${HASH}"
 	fi
 }
 
@@ -74,7 +80,7 @@ freebsd_init_mdconfig() {
 
 freebsd_cleanup_mdconfig() {
 	NAME=$1
-	mdconfig -l | grep ${NAME} >/dev/null || exit 1
+	mdconfig -l | grep ${NAME} >/dev/null
 	if [ $? -eq 0 ]; then
 		mdconfig -d -u ${NAME} || exit 1
 	fi
@@ -88,7 +94,7 @@ dragonfly_init_vnconfig() {
 
 dragonfly_cleanup_vnconfig() {
 	NAME=$1
-	vnconfig -l | grep "${NAME}: covering" >/dev/null || exit 1
+	vnconfig -l | grep "${NAME}: covering" >/dev/null
 	if [ $? -eq 0 ]; then
 		vnconfig -u ${NAME} || exit 1
 	fi
@@ -243,5 +249,14 @@ else
 fi
 unlink ${IMG_FILE}
 echo
+
+if [ "${HASH_LIST}" != "" ]; then
+	for x in ${HASH_LIST}; do
+		if [[ ${x} != *squash* ]]; then
+			echo ${x}
+		fi
+	done
+	echo
+fi
 
 echo "success"

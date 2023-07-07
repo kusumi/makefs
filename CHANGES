@@ -1,3 +1,9 @@
+r11
+======
+- Sync with FreeBSD
+- Sync HAMMER2 with DragonFly BSD
+- exFAT: Fix image creation with extra-directory
+
 r10
 ======
 - Sync HAMMER2 with DragonFly BSD

@@ -125,24 +125,39 @@ if [ "${IMG_FILE_PATH}" != "" ]; then
 	echo
 
 	OUT_DIR=${HOME}/__makefs/out
+	if [ -d ${OUT_DIR} ]; then
+		TMPSTR=`mktemp`
+		mv ${OUT_DIR} ${OUT_DIR}.`basename ${TMPSTR}`
+	fi
 	mkdir -p ${OUT_DIR} || exit 1
 	${MAKEFS} -t hammer2 -o R=${IMG_FILE_PATH} ${IMG_FILE} ${OUT_DIR} || exit 1
 	F1=${SRC_DIR}/${IMG_FILE_PATH}
 	F2=${OUT_DIR}/`basename ${IMG_FILE_PATH}`
 	stat ${F1} || exit 1
 	stat ${F2} || exit 1
-	diff ${F1} ${F2} || exit 1
-	cmp ${F1} ${F2} || exit 1
+	if [ -f ${F2} ]; then
+		echo "compare files"
+		diff ${F1} ${F2} || exit 1
+		cmp ${F1} ${F2} || exit 1
+	elif [ -d ${F2} ]; then
+		echo "compare directories"
+		diff -aNur ${F1} ${F2} >/dev/null || exit 1
+	else
+		echo "${F2} is neither file nor directory"
+		exit 1
+	fi
 	echo
 
-	${MAKEFS} -t hammer2 -o D=/${IMG_FILE_PATH} ${IMG_FILE} __ || exit 1 # need leading /
-	echo
-	${MAKEFS} -t hammer2 -o D=//${IMG_FILE_PATH}// ${IMG_FILE} __ && exit 1 # need leading /
-	echo
-	${MAKEFS} -t hammer2 -o I=get:${IMG_FILE_PATH} ${IMG_FILE} __ && exit 1
-	echo
-	${MAKEFS} -t hammer2 -o I=get://${IMG_FILE_PATH}// ${IMG_FILE} __ && exit 1
-	echo
+	if [ ${IMG_FILE_PATH} != "/" ]; then # can't destroy /
+		${MAKEFS} -t hammer2 -o D=/${IMG_FILE_PATH} ${IMG_FILE} __ || exit 1 # need leading /
+		echo
+		${MAKEFS} -t hammer2 -o D=//${IMG_FILE_PATH}// ${IMG_FILE} __ && exit 1 # need leading /
+		echo
+		${MAKEFS} -t hammer2 -o I=get:${IMG_FILE_PATH} ${IMG_FILE} __ && exit 1
+		echo
+		${MAKEFS} -t hammer2 -o I=get://${IMG_FILE_PATH}// ${IMG_FILE} __ && exit 1
+		echo
+	fi
 fi
 run_fsck fsck_hammer2 "" ${IMG_FILE}
 rm ${IMG_FILE} || exit 1

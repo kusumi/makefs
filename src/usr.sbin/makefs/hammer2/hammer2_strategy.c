@@ -985,9 +985,9 @@ hammer2_compress_and_write(char *data, hammer2_inode_t *ip,
 			}
 
 			comp_buffer = ecalloc(1, 32768);
-			strm_compress.next_in = (z_Bytef *)data;
+			strm_compress.next_in = (void *)data;
 			strm_compress.avail_in = pblksize;
-			strm_compress.next_out = (z_Bytef *)comp_buffer;
+			strm_compress.next_out = (void *)comp_buffer;
 			strm_compress.avail_out = pblksize / 2;
 			ret = deflate(&strm_compress, Z_FINISH);
 			if (ret == Z_STREAM_END) {

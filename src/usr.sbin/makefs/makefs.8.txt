@@ -258,8 +258,8 @@ DESCRIPTION
      value.  The following keywords are supported:
 
      Note that for offline operations, image-file must be a valid HAMMER2 im-
-     age file or block device.  directory is unused, but still needs to be ei-
-     ther any valid path or `--' or `__'.  Also see hammer2(8).
+     age file or block device.  directory is usually unused, but still needs
+     to be either any valid path or `--' or `__'.  Also see hammer2(8).
 
            b                     Boot area size.  See newfs_hammer2(8) for de-
                                  tails.
@@ -306,6 +306,14 @@ DESCRIPTION
            G                     Run offline growfs and exit.  By default ex-
                                  pands to image-file file or device size, un-
                                  less size is specified by -s option.
+           R                     Run offline read and exit.  This option takes
+                                 file path argument within image-file, and re-
+                                 trieves that file under directory.  directory
+                                 must exist.  If the argument is a directory,
+                                 recursively retrieve directories and regular
+                                 files.  This option currently only supports
+                                 directory and regular file.  Other file types
+                                 are ignored.
 
    exfat-specific options
      exfat images have exFAT-specific optional parameters that may be pro-
@@ -350,4 +358,4 @@ AUTHORS
      Christos Zoulas (msdos support),
      Tomohiro Kusumi (Linux port, exfat support, hammer2 support).
 
-BSD                              June 17, 2023                             BSD
+BSD                              June 27, 2023                             BSD

@@ -76,6 +76,7 @@
 #define kmalloc_create(typep, descr)	do{}while(0)
 #define kmalloc_destroy(typep)		do{}while(0)
 #define kmalloc(size, type, flags)	ecalloc(1, size)
+#define krealloc(addr, size, type, flags)	realloc(addr, size)
 #define kfree(addr, type)		free(addr)
 
 #define kmalloc_create_obj(typep, descr, objsize)	do{}while(0)
@@ -226,6 +227,18 @@ struct m_mount {
 	unsigned int mnt_iosize_max;
 };
 
+struct m_dirent {
+	uint64_t	d_ino;		/* file number of entry */
+	uint16_t	d_namlen;	/* strlen(d_name) */
+	uint8_t		d_type;		/* file type, see blow */
+	uint8_t		d_unused1;	/* padding, reserved */
+	uint32_t	d_unused2;	/* reserved */
+	char		d_name[255 + 1];/* name, NUL-terminated */
+};
+
+#define M_DIRENT_RECLEN(namelen) \
+	((__offsetof(struct m_dirent, d_name) + (namelen) + 1 + 7) & ~7)
+
 struct bio {
 	struct m_buf *bio_buf;
 	off_t bio_offset;
@@ -358,6 +371,7 @@ struct vop_readdir_args {
 	int *a_eofflag;
 	int *a_ncookies;
 	off_t **a_cookies;
+	int *a_ndirent; /* makefs */
 };
 
 struct vop_readlink_args {

@@ -910,8 +910,8 @@ typedef struct hammer2_xop_desc hammer2_xop_desc_t;
 
 struct hammer2_xop_fifo {
 	TAILQ_ENTRY(hammer2_xop_head) entry;
-	hammer2_chain_t		*array[HAMMER2_XOPFIFO];
-	int			errors[HAMMER2_XOPFIFO];
+	hammer2_chain_t		**array;
+	int			*errors;
 	int			ri;
 	int			wi;
 	int			flags;
@@ -932,6 +932,7 @@ struct hammer2_xop_head {
 	struct hammer2_inode	*ip4;
 	uint64_t		run_mask;
 	uint64_t		chk_mask;
+	int			fifo_size;
 	int			flags;
 	int			state;
 	int			error;
@@ -946,6 +947,8 @@ struct hammer2_xop_head {
 };
 
 typedef struct hammer2_xop_head hammer2_xop_head_t;
+
+#define fifo_mask(xop_head)	((xop_head)->fifo_size - 1)
 
 struct hammer2_xop_ipcluster {
 	hammer2_xop_head_t	head;
@@ -1499,6 +1502,7 @@ int hammer2_get_vtype(uint8_t type);
 uint8_t hammer2_get_obj_type(enum vtype vtype);
 void hammer2_time_to_timespec(uint64_t xtime, struct timespec *ts);
 uint64_t hammer2_timespec_to_time(const struct timespec *ts);
+void hammer2_time_to_timeval(uint64_t xtime, struct timeval *tv);
 uint32_t hammer2_to_unix_xid(const hammer2_uuid_t *uuid);
 void hammer2_guid_to_uuid(hammer2_uuid_t *uuid, uint32_t guid);
 
@@ -2016,6 +2020,8 @@ hammer2_vfsvolume_t *hammer2_get_volume(hammer2_dev_t *hmp, hammer2_off_t offset
  * hammer2_vnops.c
  */
 int hammer2_reclaim(struct m_vnode *vp);
+int hammer2_readdir(struct m_vnode *vp, void *buf, size_t size, off_t *offsetp,
+			int *ndirentp, int *eofflagp);
 int hammer2_readlink(struct m_vnode *vp, void *buf, size_t size);
 int hammer2_read(struct m_vnode *vp, void *buf, size_t size, off_t offset);
 int hammer2_write(struct m_vnode *vp, void *buf, size_t size, off_t offset);
@@ -2039,6 +2045,7 @@ int breadx(struct m_vnode *vp, off_t loffset, int size, struct m_buf **bpp);
 int bread_kvabio(struct m_vnode *vp, off_t loffset, int size, struct m_buf **bpp);
 void bqrelse(struct m_buf *bp);
 int bawrite(struct m_buf *bp);
+int uiomove(caddr_t cp, size_t n, struct uio *uio);
 int uiomovebp(struct m_buf *bp, caddr_t cp, size_t n, struct uio *uio);
 
 /*
