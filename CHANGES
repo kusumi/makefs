@@ -1,3 +1,8 @@
+r12
+======
+- Sync HAMMER2 with DragonFly BSD
+- Fix make -jx build
+
 r11
 ======
 - Sync with FreeBSD

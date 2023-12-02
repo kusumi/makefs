@@ -277,6 +277,13 @@ DESCRIPTION
                                  least 4 * 2 = 8 GiB.
            m                     The PFS label to which to create file system
                                  contents.  Defaults to "DATA".
+           c                     Compression algorithm type stored in ondisk
+                                 inode structure.  Available types are none,
+                                 autozero, lz4 and zlib.  Defaults to lz4.
+           C                     Check algorithm type stored in ondisk inode
+                                 structure.  Available types are none,
+                                 disabled, iscsi32, xxhash64, sha192 and
+                                 freemap.  Defaults to xxhash64.
            d                     sysctl vfs.hammer2.debug compatible tunable
                                  for debug prints.  Specify 0xffffffff to en-
                                  able all debug prints.  Defaults to 0.
@@ -358,4 +365,4 @@ AUTHORS
      Christos Zoulas (msdos support),
      Tomohiro Kusumi (Linux port, exfat support, hammer2 support).
 
-BSD                              June 27, 2023                             BSD
+BSD                            November 2, 2023                            BSD

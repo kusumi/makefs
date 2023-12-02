@@ -109,6 +109,8 @@ hammer2_prep_opts(fsinfo_t *fsopts)
 		{ 'm', "MountLabel", NULL, OPT_STRBUF, 0, 0, "destination PFS label" },
 		{ 'v', "NumVolhdr", &h2_opt->num_volhdr, OPT_INT32,
 		    1, HAMMER2_NUM_VOLHDRS, "number of volume headers" },
+		{ 'c', "CompressionType", NULL, OPT_STRBUF, 0, 0, "compression type" },
+		{ 'C', "CheckType", NULL, OPT_STRBUF, 0, 0, "check type" },
 		{ 'd', "Hammer2Debug", NULL, OPT_STRBUF, 0, 0, "debug tunable" },
 		{ 'E', "EmergencyMode", &h2_opt->emergency_mode, OPT_BOOL, 0, 0,
 		    "emergency mode" },
@@ -123,9 +125,8 @@ hammer2_prep_opts(fsinfo_t *fsopts)
 
 	hammer2_mkfs_init(opt);
 
-	/* make this tunable ? */
-	assert(opt->CompType == HAMMER2_COMP_NEWFS_DEFAULT);
-	assert(opt->CheckType == HAMMER2_CHECK_XXHASH64);
+	assert(opt->CompType == HAMMER2_COMP_DEFAULT);
+	assert(opt->CheckType == HAMMER2_CHECK_DEFAULT);
 
 	/* force debug mode for mkfs */
 	opt->DebugOpt = 1;
@@ -211,6 +212,38 @@ hammer2_parse_opts(const char *option, fsinfo_t *fsopts)
 			errx(1, "Volume label '%s' is too long (%d chars max)",
 			    buf, HAMMER2_INODE_MAXNAME - 1);
 		strlcpy(h2_opt->mount_label, buf, sizeof(h2_opt->mount_label));
+		break;
+	case 'c':
+		if (strlen(buf) == 0)
+			errx(1, "Compression type '%s' cannot be 0-length", buf);
+		if (strcasecmp(buf, "none") == 0)
+			opt->CompType = HAMMER2_COMP_NONE;
+		else if (strcasecmp(buf, "autozero") == 0)
+			opt->CompType = HAMMER2_COMP_AUTOZERO;
+		else if (strcasecmp(buf, "lz4") == 0)
+			opt->CompType = HAMMER2_COMP_LZ4;
+		else if (strcasecmp(buf, "zlib") == 0)
+			opt->CompType = HAMMER2_COMP_ZLIB;
+		else
+			errx(1, "Invalid compression type '%s'", buf);
+		break;
+	case 'C':
+		if (strlen(buf) == 0)
+			errx(1, "Check type '%s' cannot be 0-length", buf);
+		if (strcasecmp(buf, "none") == 0)
+			opt->CheckType = HAMMER2_CHECK_NONE;
+		else if (strcasecmp(buf, "disabled") == 0)
+			opt->CheckType = HAMMER2_CHECK_DISABLED;
+		else if (strcasecmp(buf, "iscsi32") == 0)
+			opt->CheckType = HAMMER2_CHECK_ISCSI32;
+		else if (strcasecmp(buf, "xxhash64") == 0)
+			opt->CheckType = HAMMER2_CHECK_XXHASH64;
+		else if (strcasecmp(buf, "sha192") == 0)
+			opt->CheckType = HAMMER2_CHECK_SHA192;
+		else if (strcasecmp(buf, "freemap") == 0)
+			opt->CheckType = HAMMER2_CHECK_FREEMAP;
+		else
+			errx(1, "Invalid check type '%s'", buf);
 		break;
 	case 'd':
 		hammer2_debug = strtoll(buf, NULL, 0);
@@ -813,6 +846,27 @@ hammer2_dump_fsinfo(fsinfo_t *fsopts)
 }
 
 static int
+hammer2_setup_blkdev(const char *image, fsinfo_t *fsopts)
+{
+	hammer2_makefs_options_t *h2_opt = fsopts->fs_specific;
+	hammer2_off_t size;
+
+	if ((fsopts->fd = open(image, O_RDWR)) == -1) {
+		warn("can't open `%s' for writing", image);
+		return -1;
+	}
+
+	size = check_volume(fsopts->fd);
+	if (h2_opt->image_size > size) {
+		warnx("image size %lld exceeds %s size %lld",
+		    (long long)h2_opt->image_size, image, (long long)size);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int
 hammer2_create_image(const char *image, fsinfo_t *fsopts)
 {
 	hammer2_makefs_options_t *h2_opt = fsopts->fs_specific;
@@ -821,9 +875,19 @@ hammer2_create_image(const char *image, fsinfo_t *fsopts)
 	char *buf;
 	int i, bufsize, oflags;
 	off_t bufrem;
+	struct stat st;
 
 	assert(image != NULL);
 	assert(fsopts != NULL);
+
+	/* check if image is blk or chr */
+	if (stat(image, &st) == 0) {
+		if (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode)) {
+			if (hammer2_setup_blkdev(image, fsopts))
+				return -1;
+			goto done;
+		}
+	}
 
 	/* create image */
 	oflags = O_RDWR | O_CREAT;
@@ -875,10 +939,14 @@ hammer2_create_image(const char *image, fsinfo_t *fsopts)
 	}
 	if (buf)
 		free(buf);
-
+done:
 	/* make the file system */
 	if (debug & DEBUG_FS_CREATE_IMAGE)
 		APRINTF("calling mkfs(\"%s\", ...)\n", image);
+	/*
+	 * XXX NetBSD fails if av[] image is block device,
+	 * as it doesn't allow multiple open fd's for write.
+	 */
 	hammer2_mkfs(1, av, opt); /* success if returned */
 
 	return fsopts->fd;

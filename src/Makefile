@@ -38,6 +38,7 @@ gpl/github.com/relan/exfat/dump: gpl/github.com/relan/exfat/libexfat
 gpl/github.com/relan/exfat/fsck: gpl/github.com/relan/exfat/libexfat
 gpl/github.com/relan/exfat/label: gpl/github.com/relan/exfat/libexfat
 gpl/github.com/relan/exfat/mkfs: gpl/github.com/relan/exfat/libexfat
+gpl/github.com/relan/exfat/attrib: gpl/github.com/relan/exfat/libexfat
 clean:
 	if [ -e ./makefs ]; then \
 		rm ./makefs; \

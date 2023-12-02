@@ -97,7 +97,6 @@ hammer2_vop_inactive(struct vop_inactive_args *ap)
 	 */
 	hammer2_inode_lock(ip, 0);
 	if (ip->flags & HAMMER2_INODE_ISUNLINKED) {
-		hammer2_key_t lbase;
 		int nblksize;
 
 		/*
@@ -107,7 +106,7 @@ hammer2_vop_inactive(struct vop_inactive_args *ap)
 		 * Because vrecycle() calls are not guaranteed, try to
 		 * dispose of the inode as much as possible right here.
 		 */
-		nblksize = hammer2_calc_logical(ip, 0, &lbase, NULL);
+		nblksize = hammer2_calc_logical(ip, 0, NULL, NULL);
 		nvtruncbuf(vp, 0, nblksize, 0, 0);
 
 		/*
@@ -1480,12 +1479,11 @@ static
 void
 hammer2_truncate_file(hammer2_inode_t *ip, hammer2_key_t nsize)
 {
-	hammer2_key_t lbase;
 	int nblksize;
 
 	hammer2_mtx_unlock(&ip->lock);
 	if (ip->vp) {
-		nblksize = hammer2_calc_logical(ip, nsize, &lbase, NULL);
+		nblksize = hammer2_calc_logical(ip, 0, NULL, NULL);
 		nvtruncbuf(ip->vp, nsize,
 			   nblksize, (int)nsize & (nblksize - 1),
 			   0);
@@ -1517,7 +1515,6 @@ static
 void
 hammer2_extend_file(hammer2_inode_t *ip, hammer2_key_t nsize)
 {
-	hammer2_key_t lbase;
 	hammer2_key_t osize;
 	int oblksize;
 	int nblksize;
@@ -1563,8 +1560,8 @@ hammer2_extend_file(hammer2_inode_t *ip, hammer2_key_t nsize)
 	}
 	hammer2_mtx_unlock(&ip->lock);
 	if (ip->vp) {
-		oblksize = hammer2_calc_logical(ip, osize, &lbase, NULL);
-		nblksize = hammer2_calc_logical(ip, nsize, &lbase, NULL);
+		oblksize = hammer2_calc_logical(ip, 0, NULL, NULL);
+		nblksize = hammer2_calc_logical(ip, 0, NULL, NULL);
 		nvextendbuf(ip->vp,
 			    osize, nsize,
 			    oblksize, nblksize,
@@ -1719,9 +1716,8 @@ hammer2_vop_nmkdir(struct vop_nmkdir_args *ap)
 	inum = hammer2_trans_newinum(dip->pmp);
 
 	/*
-	 * Create the actual inode as a hidden file in the iroot, then
-	 * create the directory entry.  The creation of the actual inode
-	 * sets its nlinks to 1 which is the value we desire.
+	 * Create the directory as an inode and then create the directory
+	 * entry.
 	 *
 	 * dip must be locked before nip to avoid deadlock.
 	 */
@@ -1899,12 +1895,6 @@ hammer2_vop_nlink(struct vop_nlink_args *ap)
 	 */
 	KKASSERT((ip->meta.name_key & HAMMER2_DIRHASH_VISIBLE) == 0);
 
-	error = 0;
-
-	/*
-	 * Can return NULL and error == EXDEV if the common parent
-	 * crosses a directory with the xlink flag set.
-	 */
 	hammer2_inode_lock4(tdip, ip, NULL, NULL);
 
 	hammer2_update_time(&cmtime, true);
@@ -1913,13 +1903,11 @@ hammer2_vop_nlink(struct vop_nlink_args *ap)
 	 * Create the directory entry and bump nlinks.
 	 * Also update ip's ctime.
 	 */
-	if (error == 0) {
-		error = hammer2_dirent_create(tdip, name, name_len,
-					      ip->meta.inum, ip->meta.type);
-		hammer2_inode_modify(ip);
-		++ip->meta.nlinks;
-		ip->meta.ctime = cmtime;
-	}
+	error = hammer2_dirent_create(tdip, name, name_len,
+				      ip->meta.inum, ip->meta.type);
+	hammer2_inode_modify(ip);
+	++ip->meta.nlinks;
+	ip->meta.ctime = cmtime;
 	if (error == 0) {
 		/*
 		 * Update dip's [cm]time
@@ -1992,16 +1980,14 @@ hammer2_vop_ncreate(struct vop_ncreate_args *ap)
 	inum = hammer2_trans_newinum(dip->pmp);
 
 	/*
-	 * Create the actual inode as a hidden file in the iroot, then
-	 * create the directory entry.  The creation of the actual inode
-	 * sets its nlinks to 1 which is the value we desire.
+	 * Create the regular file as an inode and then create the directory
+	 * entry.
 	 *
 	 * dip must be locked before nip to avoid deadlock.
 	 */
 	hammer2_inode_lock(dip, 0);
 	nip = hammer2_inode_create_normal(dip, ap->a_vap, ap->a_cred,
 					  inum, &error);
-
 	if (error) {
 		error = hammer2_error_to_errno(error);
 	} else {
@@ -2110,7 +2096,9 @@ hammer2_vop_nmknod(struct vop_nmknod_args *ap)
 	hammer2_inode_lock(dip, 0);
 	nip = hammer2_inode_create_normal(dip, ap->a_vap, ap->a_cred,
 					  inum, &error);
-	if (error == 0) {
+	if (error) {
+		error = hammer2_error_to_errno(error);
+	} else {
 		error = hammer2_dirent_create(dip, name, name_len,
 					      nip->meta.inum, nip->meta.type);
 	}
@@ -2219,7 +2207,9 @@ hammer2_vop_nsymlink(struct vop_nsymlink_args *ap)
 	hammer2_inode_lock(dip, 0);
 	nip = hammer2_inode_create_normal(dip, ap->a_vap, ap->a_cred,
 					  inum, &error);
-	if (error == 0) {
+	if (error) {
+		error = hammer2_error_to_errno(error);
+	} else {
 		error = hammer2_dirent_create(dip, name, name_len,
 					      nip->meta.inum, nip->meta.type);
 	}
@@ -2576,9 +2566,6 @@ hammer2_vop_nrename(struct vop_nrename_args *ap)
 		hammer2_inode_ref(tip);	/* extra ref */
 
 	/*
-	 * Can return NULL and error == EXDEV if the common parent
-	 * crosses a directory with the xlink flag set.
-	 *
 	 * For now try to avoid deadlocks with a simple pointer address
 	 * test.  (tip) can be NULL.
 	 */
@@ -2608,7 +2595,7 @@ hammer2_vop_nrename(struct vop_nrename_args *ap)
 	 */
 	{
 		hammer2_xop_scanlhc_t *sxop;
-		hammer2_tid_t lhcbase;
+		hammer2_key_t lhcbase;
 
 		tlhc = hammer2_dirhash(tname, tname_len);
 		lhcbase = tlhc;
