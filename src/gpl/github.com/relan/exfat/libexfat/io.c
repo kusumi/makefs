@@ -144,6 +144,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		dev->mode = EXFAT_MODE_RW;
 		break;
 	case EXFAT_MODE_ANY:
+	default:
 		dev->fd = open_rw(spec);
 		if (dev->fd != -1)
 		{

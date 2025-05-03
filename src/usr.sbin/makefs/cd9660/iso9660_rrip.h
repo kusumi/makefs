@@ -32,8 +32,6 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
- *
- * $FreeBSD$
  */
 #ifndef __ISO9660_RRIP_H__
 #define __ISO9660_RRIP_H__
@@ -226,7 +224,7 @@ int cd9660_susp_finalize_node(iso9660_disk *, cd9660node *);
 int cd9660_rrip_finalize_node(cd9660node *);
 
 /* POSIX File attribute */
-int cd9660node_rrip_px(struct ISO_SUSP_ATTRIBUTES *, fsnode *);
+int cd9660node_rrip_px(iso9660_disk *, struct ISO_SUSP_ATTRIBUTES *, fsnode *);
 
 /* Device number */
 int cd9660node_rrip_pn(struct ISO_SUSP_ATTRIBUTES *, fsnode *);

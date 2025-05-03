@@ -1,3 +1,11 @@
+r13
+======
+- Sync with FreeBSD
+- Sync HAMMER2 with DragonFly BSD
+- Remove v7fs (Version 7 Unix file system) support
+- Enable gcc -O2
+- Misc updates
+
 r12
 ======
 - Sync HAMMER2 with DragonFly BSD

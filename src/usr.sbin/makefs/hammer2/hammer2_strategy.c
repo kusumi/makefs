@@ -214,6 +214,7 @@ hammer2_decompress_ZLIB_callback(const char *data, u_int bytes, struct bio *bio)
 	bp = bio->bio_buf;
 
 	KKASSERT(bp->b_bufsize <= HAMMER2_PBUFSIZE);
+	bzero(&strm_decompress, sizeof(strm_decompress));
 	strm_decompress.avail_in = 0;
 	strm_decompress.next_in = Z_NULL;
 
@@ -445,9 +446,7 @@ hammer2_strategy_read_completion(hammer2_chain_t *focus, const char *data,
 		 * Data is on-media, record for live dedup.  Release the
 		 * chain (try to free it) when done.  The data is still
 		 * cached by both the buffer cache in front and the
-		 * block device behind us.  This leaves more room in the
-		 * LRU chain cache for meta-data chains which we really
-		 * want to retain.
+		 * block device behind us.
 		 *
 		 * NOTE: Deduplication cannot be safely recorded for
 		 *	 records without a check code.
@@ -976,6 +975,7 @@ hammer2_compress_and_write(char *data, hammer2_inode_t *ip,
 				comp_level = 6;
 			else if (comp_level > 9)
 				comp_level = 9;
+			bzero(&strm_compress, sizeof(strm_compress));
 			ret = deflateInit(&strm_compress, comp_level);
 			if (ret != Z_OK) {
 				kprintf("HAMMER2 ZLIB: fatal error "

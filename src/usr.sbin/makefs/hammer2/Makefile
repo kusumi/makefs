@@ -2,9 +2,9 @@ SRCS=	hammer2_admin.c hammer2_buf.c hammer2_bulkfree.c hammer2_chain.c hammer2_c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
+CFLAGS+=	-Wall -O2
 # not -I.
-CFLAGS+=	-I.. -I../../../sys -I../../../sbin/hammer2 -I../../../sbin/newfs_hammer2 -I../../../lib/libnetbsd -I../../../lib/libutil
+CFLAGS+=	-I.. -I../../../sys -I../../../sbin/hammer2 -I../../../sbin/newfs_hammer2 -I../../../lib/libnetbsd
 
 .PHONY: all clean
 

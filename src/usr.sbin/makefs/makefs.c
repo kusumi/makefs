@@ -37,9 +37,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
+#include <sys/compat.h> /* getprogname */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -78,12 +76,14 @@ static fstype_t fstypes[] = {
 	ENTRY(cd9660),
 	ENTRY(ffs),
 	ENTRY(msdos),
-	ENTRY(v7fs),
 #ifdef MAKEFS_HAMMER2
 	ENTRY(hammer2),
 #endif
 #ifdef MAKEFS_EXFAT
 	ENTRY(exfat),
+#endif
+#ifdef HAVE_ZFS
+	ENTRY(zfs),
 #endif
 	{ .type = NULL	},
 };
@@ -172,7 +172,7 @@ main(int argc, char *argv[])
 			break;
 
 		case 'D':
-			dupsok = 1;
+			dupsok++;
 			break;
 
 		case 'd':
@@ -356,6 +356,7 @@ main(int argc, char *argv[])
 		putchar('\n');
 	}
 ignore_walk_dir:
+
 				/* build the file system */
 	TIMER_START(start);
 	fstype->make_fs(argv[0], subtree, root, &fsoptions);

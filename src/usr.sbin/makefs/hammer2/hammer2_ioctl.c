@@ -1258,7 +1258,7 @@ hammer2_ioctl_destroy(hammer2_inode_t *ip, void *data)
  * Grow a filesystem into its partition size
  */
 int
-hammer2_ioctl_growfs(hammer2_inode_t *ip, void *data, struct ucred *cred)
+hammer2_ioctl_growfs(hammer2_inode_t *ip, void *data, struct m_ucred *cred)
 {
 	hammer2_ioc_growfs_t *grow = data;
 	hammer2_dev_t *hmp;

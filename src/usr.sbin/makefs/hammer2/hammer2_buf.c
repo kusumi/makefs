@@ -124,7 +124,7 @@ bawrite(struct m_buf *bp)
 int
 uiomove(caddr_t cp, size_t n, struct uio *uio)
 {
-	struct iovec *iov;
+	struct m_iovec *iov;
 	size_t cnt;
 	int error = 0;
 

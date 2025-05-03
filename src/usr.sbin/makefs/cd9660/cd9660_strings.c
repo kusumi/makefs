@@ -34,12 +34,9 @@
  * OF SUCH DAMAGE.
  */
 
-#include <sys/types.h> /* for OpenBSD */
+#include <sys/types.h> /* OpenBSD */
 #include <sys/mount.h>
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 #include <sys/param.h>
 #include <ctype.h>
 

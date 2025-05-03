@@ -1,4 +1,3 @@
-/* $FreeBSD$ */
 /*	$NetBSD: bpb.h,v 1.7 1997/11/17 15:36:24 ws Exp $	*/
 
 /*-
@@ -20,7 +19,7 @@
 #ifndef _FS_MSDOSFS_BPB_H_
 #define	_FS_MSDOSFS_BPB_H_
 
-#include <sys/compat.h>
+#include <stdint.h> /* uintX_t */
 
 /*
  * BIOS Parameter Block (BPB) for DOS 3.3

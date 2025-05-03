@@ -1,7 +1,9 @@
-MAKEFS(8)                 BSD System Manager's Manual                MAKEFS(8)
+MAKEFS(8)               FreeBSD System Manager's Manual              MAKEFS(8)
+
+
 
 NAME
-     makefs -- create a file system image from a directory tree or a mtree
+     makefs - create a file system image from a directory tree or a mtree
      manifest
 
 SYNOPSIS
@@ -13,11 +15,11 @@ SYNOPSIS
 
 DESCRIPTION
      The utility makefs creates a file system image into image-file from the
-     directory tree directory or from the mtree manifest manifest.  If any op-
-     tional directory trees are passed in the extra-directory arguments, then
-     the directory tree of each argument will be merged into the directory or
-     manifest first before creating image-file.  No special devices or privi-
-     leges are required to perform this task.
+     directory tree directory or from the mtree manifest manifest.  If any
+     optional directory trees are passed in the extra-directory arguments,
+     then the directory tree of each argument will be merged into the
+     directory or manifest first before creating image-file.  No special
+     devices or privileges are required to perform this task.
 
      The options are as follows:
 
@@ -28,15 +30,19 @@ DESCRIPTION
            order; in those cases this argument will be ignored.
 
      -b free-blocks
-           Ensure that a minimum of free-blocks free blocks exist in the im-
-           age.  An optional `%' suffix may be provided to indicate that
+           Ensure that a minimum of free-blocks free blocks exist in the
+           image.  An optional `%' suffix may be provided to indicate that
            free-blocks indicates a percentage of the calculated image size.
 
      -D    Treat duplicate paths in an mtree manifest as warnings not error.
+           If this flag is specified more than once, warnings about duplicate
+           paths are not printed at all.
 
      -d debug-mask
            Enable various levels of debugging, depending upon which bits are
-           set in debug-mask.  XXX: document these
+           set in debug-mask.  This option is intended for source debugging.
+           debug-mask is a bit map defined in the header file makefs.h.  See
+           the source for usage, and look for defines starting with DEBUG_.
 
      -F mtree-specfile
            This is almost certainly not the option you are looking for. To
@@ -45,24 +51,24 @@ DESCRIPTION
            argument to -F.
 
            Use mtree-specfile as an mtree(8) `specfile' specification.  This
-           option has no effect when the image is created from a mtree mani-
-           fest rather than a directory.
+           option has no effect when the image is created from a mtree
+           manifest rather than a directory.
 
-           If a specfile entry exists in the underlying file system, its per-
-           missions and modification time will be used unless specifically
+           If a specfile entry exists in the underlying file system, its
+           permissions and modification time will be used unless specifically
            overridden by the specfile.  An error will be raised if the type of
            entry in the specfile conflicts with that of an existing entry.
 
            In the opposite case (where a specfile entry does not have an entry
-           in the underlying file system) the following occurs: If the spec-
-           file entry is marked optional, the specfile entry is ignored.  Oth-
-           erwise, the entry will be created in the image, and it is necessary
-           to specify at least the following parameters in the specfile: type,
-           mode, gname, or gid, and uname or uid, and link (in the case of
-           symbolic links).  If time is not provided, the current time will be
-           used.  If flags is not provided, the current file flags will be
-           used.  Missing regular file entries will be created as zero-length
-           files.
+           in the underlying file system) the following occurs: If the
+           specfile entry is marked optional, the specfile entry is ignored.
+           Otherwise, the entry will be created in the image, and it is
+           necessary to specify at least the following parameters in the
+           specfile: type, mode, gname, or gid, and uname or uid, and link (in
+           the case of symbolic links).  If time is not provided, the current
+           time will be used.  If flags is not provided, the current file
+           flags will be used.  Missing regular file entries will be created
+           as zero-length files.
 
      -f free-files
            Ensure that a minimum of free-files free files (inodes) exist in
@@ -92,12 +98,13 @@ DESCRIPTION
            list of options.  Valid file system specific options are detailed
            below.
 
-     -p    Deprecated.  See the -Z flag.
+     -p    Deprecated.  Create a sparse file for ffs.  This is the same as the
+           preferred -Z flag.
 
      -R roundup-size
-           Round the image up to roundup-size.  roundup-size should be a mul-
-           tiple of the file system block size.  This option only applies to
-           the ffs file system type.
+           Round the image up to roundup-size.  roundup-size should be a
+           multiple of the file system block size.  This option only applies
+           to the ffs file system type.
 
      -S sector-size
            Set the file system sector size to sector-size.  Defaults to 512.
@@ -109,12 +116,12 @@ DESCRIPTION
            include the offset.  offset is not included in that size.
 
      -T timestamp
-           Specify a timestamp to be set for all filesystem files and directo-
-           ries created so that repeatable builds are possible.  The timestamp
-           can be a pathname, where the timestamps are derived from that file,
-           or an integer value interpreted as the number of seconds from the
-           Epoch.  Note that timestamps specified in an mtree(5) spec file,
-           override the default timestamp.
+           Specify a timestamp to be set for all filesystem files and
+           directories created so that repeatable builds are possible.  The
+           timestamp can be a pathname, where the timestamps are derived from
+           that file, or an integer value interpreted as the number of seconds
+           from the Epoch.  Note that timestamps specified in an mtree(5) spec
+           file, override the default timestamp.
 
      -t fs-type
            Create an fs-type file system image.  The following file system
@@ -137,8 +144,8 @@ DESCRIPTION
            for virtual machine images.
 
      Where sizes are specified, a decimal number of bytes is expected.  Two or
-     more numbers may be separated by an "x" to indicate a product.  Each num-
-     ber may have one of the following optional suffixes:
+     more numbers may be separated by an "x" to indicate a product.  Each
+     number may have one of the following optional suffixes:
            b    Block; multiply by 512
            k    Kibi; multiply by 1024 (1 KiB)
            m    Mebi; multiply by 1048576 (1 MiB)
@@ -171,9 +178,9 @@ DESCRIPTION
            softupdates   0 for disable (default), 1 for enable
 
    CD9660-specific options
-     cd9660 images have ISO9660-specific optional parameters that may be pro-
-     vided.  The arguments consist of a keyword and, optionally, an equal sign
-     (`='), and a value.  The following keywords are supported:
+     cd9660 images have ISO9660-specific optional parameters that may be
+     provided.  The arguments consist of a keyword and, optionally, an equal
+     sign (`='), and a value.  The following keywords are supported:
 
            allow-deep-trees      Allow the directory structure to exceed the
                                  maximum specified in the spec.
@@ -181,14 +188,12 @@ DESCRIPTION
                                  option is not implemented.
            allow-lowercase       Allow lowercase characters in filenames.
                                  This option is not implemented.
-           allow-max-name        Allow 37 instead of 33 characters for file-
-                                 names by omitting the version id.
+           allow-max-name        Allow 37 instead of 33 characters for
+                                 filenames by omitting the version id.
            allow-multidot        Allow multiple dots in a filename.
            applicationid         Application ID of the image.
-           archimedes            Use the `ARCHIMEDES' extension to encode RISC
-                                 OS metadata.
-           bootimagedir          Boot image directory.  This option is not im-
-                                 plemented.
+           bootimagedir          Boot image directory.  This option is not
+                                 implemented.
            chrp-boot             Write an MBR partition table to the image to
                                  allow older CHRP hardware to boot.
            boot-load-segment     Set load segment for the boot image.
@@ -199,15 +204,15 @@ DESCRIPTION
            generic-bootimage     Load a generic boot image into the first 32K
                                  of the cd9660 image.
            hard-disk-boot        Boot image is a hard disk image.
-           isolevel              An integer representing the ISO 9660 inter-
-                                 change level where "level" is either `1' or
-                                 `2'.  "level" `3' is not implemented.
+           isolevel              An integer representing the ISO 9660
+                                 interchange level where "level" is either `1'
+                                 or `2'.  "level" `3' is not implemented.
            keep-bad-images       Do not discard images whose write was aborted
                                  due to an error.  For debugging purposes.
            label                 Label name of the image.
            no-boot               Boot image is not bootable.
-           no-emul-boot          Boot image is a "no emulation" ElTorito im-
-                                 age.
+           no-emul-boot          Boot image is a "no emulation" ElTorito
+                                 image.
            no-trailing-padding   Do not pad the image (apparently Linux needs
                                  the padding).
            omit-trailing-period  Omit trailing periods in filenames.
@@ -215,14 +220,14 @@ DESCRIPTION
                                  the boot image.
            preparer              Preparer ID of the image.
            publisher             Publisher ID of the image.
-           rockridge             Use RockRidge extensions (for longer file-
-                                 names, etc.).
+           rockridge             Use RockRidge extensions (for longer
+                                 filenames, etc.).
            verbose               Turns on verbose output.
            volumeid              Volume set identifier of the image.
 
    msdos-specific options
-     msdos images have MS-DOS-specific optional parameters that may be pro-
-     vided.  The arguments consist of a keyword, an equal sign (`='), and a
+     msdos images have MS-DOS-specific optional parameters that may be
+     provided.  The arguments consist of a keyword, an equal sign (`='), and a
      value.  The following keywords are supported (see newfs_msdos(8) for more
      details):
 
@@ -242,8 +247,8 @@ DESCRIPTION
            media_descriptor      Media descriptor.
            num_FAT               Number of FATs.
            OEM_string            OEM string.
-           offset                Offset in device.  This option will be ig-
-                                 nored if -O is set to a positive number.
+           offset                Offset in device.  This option will be
+                                 ignored if -O is set to a positive number.
            reserved_sectors      Reserved sectors.
            sectors_per_cluster   Sectors per cluster.
            sectors_per_fat       Sectors per FAT.
@@ -253,22 +258,22 @@ DESCRIPTION
            volume_label          Volume Label.
 
    hammer2-specific options
-     hammer2 images have HAMMER2-specific optional parameters that may be pro-
-     vided.  The arguments consist of a keyword, an equal sign (`='), and a
+     hammer2 images have HAMMER2-specific optional parameters that may be
+     provided.  The arguments consist of a keyword, an equal sign (`='), and a
      value.  The following keywords are supported:
 
-     Note that for offline operations, image-file must be a valid HAMMER2 im-
-     age file or block device.  directory is usually unused, but still needs
+     Note that for offline operations, image-file must be a valid HAMMER2
+     image file or block device.  directory is usually unused, but still needs
      to be either any valid path or `--' or `__'.  Also see hammer2(8).
 
-           b                     Boot area size.  See newfs_hammer2(8) for de-
-                                 tails.
-           r                     Aux area size.  See newfs_hammer2(8) for de-
-                                 tails.
+           b                     Boot area size.  See newfs_hammer2(8) for
+                                 details.
+           r                     Aux area size.  See newfs_hammer2(8) for
+                                 details.
            V                     File system version.  See newfs_hammer2(8)
                                  for details.  Print file system version of
-                                 image-file and exit if no argument is speci-
-                                 fied.
+                                 image-file and exit if no argument is
+                                 specified.
            L                     PFS Label.  See newfs_hammer2(8) for details.
                                  Unlike newfs_hammer2(8), always defaults to
                                  "DATA".
@@ -285,23 +290,23 @@ DESCRIPTION
                                  disabled, iscsi32, xxhash64, sha192 and
                                  freemap.  Defaults to xxhash64.
            d                     sysctl vfs.hammer2.debug compatible tunable
-                                 for debug prints.  Specify 0xffffffff to en-
-                                 able all debug prints.  Defaults to 0.
+                                 for debug prints.  Specify 0xffffffff to
+                                 enable all debug prints.  Defaults to 0.
            E                     Set emergency mode.
-           P                     Run offline PFS command and exit.  This op-
-                                 tion takes PFS command name argument.  Avail-
-                                 able PFS command names are get (alias list),
-                                 lookup, create, delete and snapshot.  lookup,
-                                 create and delete take `:<pfs_name>' string
-                                 after PFS command name.  snapshot takes op-
-                                 tional `:<pfs_name>' string after PFS command
-                                 name.  Use -o m option to specify target PFS
-                                 for snapshot.
-           I                     Run offline inode command and exit.  This op-
-                                 tion takes inode command name argument.
+           P                     Run offline PFS command and exit.  This
+                                 option takes PFS command name argument.
+                                 Available PFS command names are get (alias
+                                 list), lookup, create, delete and snapshot.
+                                 lookup, create and delete take `:<pfs_name>'
+                                 string after PFS command name.  snapshot
+                                 takes optional `:<pfs_name>' string after PFS
+                                 command name.  Use -o m option to specify
+                                 target PFS for snapshot.
+           I                     Run offline inode command and exit.  This
+                                 option takes inode command name argument.
                                  Available inode command names are get,
-                                 setcheck and setcomp.  get takes `:<in-
-                                 ode_path>' string after command name.
+                                 setcheck and setcomp.  get takes
+                                 `:<inode_path>' string after command name.
                                  setcheck takes `:<inode_path>:<check_algo>'
                                  string after command name.  setcomp takes
                                  `:<inode_path>:<comp_algo>[:<comp_level>]'
@@ -310,21 +315,21 @@ DESCRIPTION
            D                     Run offline destroy and exit.  This option
                                  takes file path or inode number argument.
                                  The file path argument must start with `/'.
-           G                     Run offline growfs and exit.  By default ex-
-                                 pands to image-file file or device size, un-
-                                 less size is specified by -s option.
+           G                     Run offline growfs and exit.  By default
+                                 expands to image-file file or device size,
+                                 unless size is specified by -s option.
            R                     Run offline read and exit.  This option takes
-                                 file path argument within image-file, and re-
-                                 trieves that file under directory.  directory
-                                 must exist.  If the argument is a directory,
-                                 recursively retrieve directories and regular
-                                 files.  This option currently only supports
-                                 directory and regular file.  Other file types
-                                 are ignored.
+                                 file path argument within image-file, and
+                                 retrieves that file under directory.
+                                 directory must exist.  If the argument is a
+                                 directory, recursively retrieve directories
+                                 and regular files.  This option currently
+                                 only supports directory and regular file.
+                                 Other file types are ignored.
 
    exfat-specific options
-     exfat images have exFAT-specific optional parameters that may be pro-
-     vided.  The arguments consist of a keyword, an equal sign (`='), and a
+     exfat images have exFAT-specific optional parameters that may be
+     provided.  The arguments consist of a keyword, an equal sign (`='), and a
      value.  The following keywords are supported:
 
            create_size           Image size to create, e.g. 1g for 1GiB image
@@ -338,17 +343,17 @@ DESCRIPTION
                                  block has a field for this value but in fact
                                  it's optional and does not affect anything.
                                  Default is 0.
-           s                     Number of physical sectors per cluster (clus-
-                                 ter is an allocation unit in exFAT).  Must be
-                                 a power of 2, i.e. 1, 2, 4, 8, etc.  Cluster
-                                 size can not exceed 32 MB.  Default cluster
-                                 sizes are: 4 KB if volume size is less than
-                                 256 MB, 32 KB if volume size is from 256 MB
-                                 to 32 GB, 128 KB if volume size is 32 GB or
-                                 larger.
+           s                     Number of physical sectors per cluster
+                                 (cluster is an allocation unit in exFAT).
+                                 Must be a power of 2, i.e. 1, 2, 4, 8, etc.
+                                 Cluster size can not exceed 32 MB.  Default
+                                 cluster sizes are: 4 KB if volume size is
+                                 less than 256 MB, 32 KB if volume size is
+                                 from 256 MB to 32 GB, 128 KB if volume size
+                                 is 32 GB or larger.
 
 SEE ALSO
-     mtree(5), mtree(8), newfs(8)
+     mtree(5), rc.conf(5), mtree(8), newfs(8)
 
 HISTORY
      The makefs utility appeared in NetBSD 1.6.  It was ported to FreeBSD and
@@ -365,4 +370,4 @@ AUTHORS
      Christos Zoulas (msdos support),
      Tomohiro Kusumi (Linux port, exfat support, hammer2 support).
 
-BSD                            November 2, 2023                            BSD
+FreeBSD 14.2-RELEASE           January 19, 2024           FreeBSD 14.2-RELEASE

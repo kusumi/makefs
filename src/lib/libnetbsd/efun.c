@@ -1,5 +1,4 @@
 /*	$NetBSD: efun.c,v 1.10 2015/07/26 02:20:30 kamil Exp $	*/
-/*	$FreeBSD$ */
 
 /*-
  * Copyright (c) 2006 The NetBSD Foundation, Inc.
@@ -40,12 +39,12 @@ __RCSID("$NetBSD: efun.c,v 1.10 2015/07/26 02:20:30 kamil Exp $");
 #endif
 
 #include <err.h>
-#include <errno.h>
-#include <inttypes.h>
+//#include <errno.h>
+//#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
+//#include <stdio.h>
+//#include <stdarg.h>
 #include <util.h>
 
 static void (*efunc)(int, const char *, ...) = err;

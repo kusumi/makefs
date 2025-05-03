@@ -1,4 +1,3 @@
-/* $FreeBSD$ */
 /*	$NetBSD: denode.h,v 1.25 1997/11/17 15:36:28 ws Exp $	*/
 
 /*-
@@ -163,7 +162,7 @@ struct denode {
 	u_long de_FileSize;	/* size of file in bytes */
 	struct fatcache de_fc[FC_SIZE];	/* FAT cache */
 	//u_quad_t de_modrev;	/* Revision level for lease. */
-	uint64_t de_inode;	/* Inode number (really byte offset of direntry) */
+	uint64_t de_inode;	/* Inode number (really index of DOS style direntry) */
 };
 
 /*
@@ -217,6 +216,12 @@ struct denode {
 
 #define	VTODE(vp)	((struct denode *)(vp)->v_data)
 #define	DETOV(de)	((de)->de_vnode)
+
+#define DETOI(pmp, cn, off)						\
+	((cn) == MSDOSFSROOT						\
+	    ? (((uint64_t)(off) >> 5))					\
+	    : (((((uint64_t)pmp->pm_bpcluster * ((cn) - 2) + (off))) >> 5) \
+		+ pmp->pm_RootDirEnts))
 
 #define	DETIMES(dep, acc, mod, cre) do {				\
 	if ((dep)->de_flag & DE_UPDATE) {				\
@@ -279,14 +284,14 @@ int uniqdosname(struct denode *, struct componentname *, u_char *);
 
 int readep(struct msdosfsmount *pmp, u_long dirclu, u_long dirofs,  struct buf **bpp, struct direntry **epp);
 int readde(struct denode *dep, struct buf **bpp, struct direntry **epp);
-int deextend(struct denode *dep, u_long length, struct ucred *cred);
+int deextend(struct denode *dep, u_long length, struct m_ucred *cred);
 int fillinusemap(struct msdosfsmount *pmp);
 void reinsert(struct denode *dep);
 int dosdirempty(struct denode *dep);
 int createde(struct denode *dep, struct denode *ddep, struct denode **depp, struct componentname *cnp);
 int deupdat(struct denode *dep, int waitfor);
 int removede(struct denode *pdep, struct denode *dep);
-int detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred);
+int detrunc(struct denode *dep, u_long length, int flags, struct m_ucred *cred);
 int doscheckpath( struct denode *source, struct denode *target,
     daddr_t *wait_scn);
 #endif	/* _KERNEL || MAKEFS */

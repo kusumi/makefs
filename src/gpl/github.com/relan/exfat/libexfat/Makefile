@@ -2,7 +2,7 @@ SRCS=	cluster.c io.c log.c lookup.c mount.c node.c repair.c time.c utf.c utils.c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
+CFLAGS+=	-Wall -O2
 CFLAGS+=	-I.
 
 .PHONY: all clean

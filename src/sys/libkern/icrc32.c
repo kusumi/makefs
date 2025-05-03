@@ -3,7 +3,7 @@
  *  code or tables extracted from it, as desired without restriction.
  */
 
-#include <sys/compat.h>
+#include <sys/compat.h> /* rounddown */
 #include <sys/param.h>
 #ifdef _KERNEL
 #include <sys/systm.h>

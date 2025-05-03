@@ -1,4 +1,3 @@
-/*	$FreeBSD$	*/
 
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
@@ -37,7 +36,7 @@
 
 #include <sys/types.h>
 //#include <libutil.h>
-#include <stdio.h>
+//#include <stdio.h>
 
 #if 0
 void	(*esetfunc(void (*)(int, const char *, ...)))(int, const char *, ...);

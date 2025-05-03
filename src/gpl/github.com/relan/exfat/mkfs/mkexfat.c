@@ -135,13 +135,13 @@ int mkfs(struct exfat_dev* dev, off_t volume_size)
 		return 1;
 	if (create(dev) != 0)
 		return 1;
-	puts("done");
+	puts("done.");
 
 	fputs("Flushing... ", stdout);
 	fflush(stdout);
 	if (exfat_fsync(dev) != 0)
 		return 1;
-	puts("done");
+	puts("done.");
 
 	return 0;
 }

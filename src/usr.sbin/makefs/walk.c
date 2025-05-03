@@ -37,11 +37,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
-
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -54,7 +49,7 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <util.h> /* efun() */
+#include <util.h>
 
 #include "makefs.h"
 #include "mtree.h"
@@ -611,8 +606,6 @@ inode_type(mode_t mode)
 		return ("symlink");
 	if (S_ISDIR(mode))
 		return ("dir");
-	if (S_ISLNK(mode))
-		return ("link");
 	if (S_ISFIFO(mode))
 		return ("fifo");
 	if (S_ISSOCK(mode))

@@ -32,12 +32,6 @@
 #include "nbtool_config.h"
 #endif
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-#if defined(__RCSID) && !defined(__lint)
-__FBSDID("$FreeBSD$");
-#endif	/* !__lint */
-
 #include <sys/param.h>
 
 #if !HAVE_NBTOOL_CONFIG_H

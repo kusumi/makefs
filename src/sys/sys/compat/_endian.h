@@ -31,6 +31,8 @@
 #ifndef _SYS_COMPAT__ENDIAN_H_
 #define _SYS_COMPAT__ENDIAN_H_
 
+#include <stdint.h> /* uint*_t */
+
 /* Alignment-agnostic encode/decode bytestream to/from little/big endian. */
 static __inline uint16_t
 be16dec(const void *pp)

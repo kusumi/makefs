@@ -547,6 +547,7 @@ inumhash(hammer2_pfs_t *pmp, hammer2_tid_t inum)
 	return (&pmp->inumhash[hv & HAMMER2_INUMHASH_MASK]);
 }
 
+
 /*
  * Lookup an inode by inode number
  */
@@ -1126,7 +1127,7 @@ done2:
  */
 hammer2_inode_t *
 hammer2_inode_create_normal(hammer2_inode_t *pip,
-			    struct vattr *vap, struct ucred *cred,
+			    struct vattr *vap, struct m_ucred *cred,
 			    hammer2_key_t inum, int *errorp)
 {
 	hammer2_xop_create_t *xop;

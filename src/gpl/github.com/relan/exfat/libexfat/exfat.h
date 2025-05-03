@@ -51,8 +51,12 @@
 #define CLUSTER_INVALID(sb, c) ((c) < EXFAT_FIRST_DATA_CLUSTER || \
 	(c) - EXFAT_FIRST_DATA_CLUSTER >= le32_to_cpu((sb).cluster_count))
 
+#ifndef MIN /* should exist in <sys/param.h> */
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX /* should exist in <sys/param.h> */
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
 #define ROUND_UP(x, d) (DIV_ROUND_UP(x, d) * (d))
 

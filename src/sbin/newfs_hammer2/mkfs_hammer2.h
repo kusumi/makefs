@@ -38,11 +38,7 @@
 
 #include <vfs/hammer2/hammer2_disk.h>
 
-#if defined __linux__ || defined __CYGWIN__
-#include <uuid/uuid.h>
-#else
-#include <uuid.h>
-#endif
+//#include <uuid.h>
 
 #include "hammer2_subs.h"
 

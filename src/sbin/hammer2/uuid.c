@@ -32,7 +32,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/compat.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,7 +50,7 @@
 
 #if defined __linux__ || defined __CYGWIN__
 static void
-__uuid_swap(struct __uuid *p)
+uuid_swap(struct m_uuid *p)
 {
 	p->time_low = bswap_32(p->time_low);
 	p->time_mid = bswap_16(p->time_mid);
@@ -76,7 +75,7 @@ hammer2_uuid_from_string(const char *str, hammer2_uuid_t *uuid)
 	if (uuid_parse(str, uuid->uuid))
 		return(-1);
 
-	__uuid_swap((struct __uuid*)&uuid->uuid); /* big to little */
+	uuid_swap((struct m_uuid*)&uuid->uuid); /* big to little */
 #else
 	uuid_from_string(str, &uuid->uuid, NULL);
 #endif
@@ -87,10 +86,10 @@ int
 hammer2_uuid_to_string(const hammer2_uuid_t *uuid, char **str)
 {
 #if defined __linux__ || defined __CYGWIN__
-	struct __uuid u;
+	struct m_uuid u;
 
 	memcpy(&u, uuid->uuid, sizeof(u));
-	__uuid_swap(&u); /* little to big */
+	uuid_swap(&u); /* little to big */
 
 	*str = calloc(64, sizeof(char*));
 	uuid_unparse((void*)&u, *str);

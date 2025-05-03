@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+//#include <sys/dirent.h>
 #ifdef __DragonFly__
 #include <sys/sysctl.h>
 #endif
@@ -307,11 +308,6 @@ hammer2_makefs(const char *image, const char *dir, fsnode *root,
 	hammer2_inode_t *iroot;
 	struct timeval start;
 	int error;
-
-	/* assert possibly platform dependent macros */
-	assert(PCATCH != PINTERLOCKED);
-	assert(UIO_USERSPACE != UIO_NOCOPY);
-	assert(UIO_SYSSPACE != UIO_NOCOPY);
 
 	/* ioctl commands could have NULL dir / root */
 	assert(image != NULL);
@@ -1657,7 +1653,6 @@ start_ioctl:
 	printf("name_len = %u\n", meta->name_len);
 	printf("ncopies = %u\n", meta->ncopies);
 	printf("comp_algo = 0x%jx\n", (uintmax_t)meta->comp_algo);
-	printf("target_type = %u\n", meta->target_type);
 	printf("check_algo = %u\n", meta->check_algo);
 	printf("pfs_nmasters = %u\n", meta->pfs_nmasters);
 	printf("pfs_type = %u (%s)\n", meta->pfs_type,
@@ -2219,7 +2214,7 @@ hammer2_readx_directory(struct m_vnode *dvp, const char *dir, const char *name,
 					return error;
 			}
 			dp = (void *)((char *)dp +
-			    M_DIRENT_RECLEN(dp->d_namlen));
+			    _DIRENT_RECLEN(dp->d_namlen));
 		}
 	}
 

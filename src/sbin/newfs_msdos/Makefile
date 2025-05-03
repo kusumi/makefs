@@ -2,7 +2,7 @@ SRCS=	mkfs_msdos.c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
+CFLAGS+=	-Wall -O2
 CFLAGS+=	-DMAKEFS
 CFLAGS+=	-I. -I../../sys
 

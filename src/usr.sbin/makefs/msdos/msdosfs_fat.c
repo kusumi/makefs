@@ -1,4 +1,3 @@
-/* $FreeBSD$ */
 /*	$NetBSD: msdosfs_fat.c,v 1.28 1997/11/17 15:36:49 ws Exp $	*/
 
 /*-
@@ -246,7 +245,7 @@ pcbmap(struct denode *dep, u_long findcn, daddr_t *bnp, u_long *cnp, int *sp)
 		return (0);
 	}
 
-hiteof:;
+hiteof:
 	if (cnp)
 		*cnp = i;
 	if (bp)
@@ -809,7 +808,7 @@ freeclusterchain(struct msdosfsmount *pmp, u_long cluster)
 {
 	int error;
 	struct m_buf *bp = NULL;
-	u_long bn, bo, bsize, byteoffset;
+	u_long bn = -1, bo, bsize, byteoffset;
 	u_long readcn, lbn = -1;
 
 	while (cluster >= CLUST_FIRST && cluster <= pmp->pm_maxcluster) {

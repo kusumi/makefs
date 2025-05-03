@@ -28,30 +28,7 @@
 #ifndef _MAKEFS_COMPAT_H
 #define _MAKEFS_COMPAT_H
 
-#if defined __linux__ || defined __CYGWIN__
-#define _GNU_SOURCE /* vasprintf(3) */
-#endif
-
-#include <stdint.h> /* uintX_t */
-#include <stddef.h> /* size_t, offsetof() */
-
 /* sys/sys/cdefs.h */
-#ifndef __FBSDID
-#define __FBSDID(s)	struct __hack
-#endif
-
-#ifndef __RCSID
-#define __RCSID(s)	struct __hack
-#endif
-
-#ifndef __SCCSID
-#define __SCCSID(s)	struct __hack
-#endif
-
-#ifndef __KERNEL_RCSID
-#define __KERNEL_RCSID(n, s)	struct __hack
-#endif
-
 #ifndef __printflike
 #define __printflike(fmtarg, firstvararg)
 #endif
@@ -82,10 +59,6 @@
 #define __dead		__attribute__((__noreturn__))
 #endif
 
-#ifndef __dead2
-#define __dead2		__attribute__((__noreturn__))
-#endif
-
 #ifndef __packed
 #define __packed	__attribute__((__packed__))
 #endif
@@ -101,10 +74,6 @@
 
 #ifndef MAXBSIZE
 #define MAXBSIZE	65536	/* must be power of 2 */
-#endif
-
-#ifndef MAXPATHLEN
-#define MAXPATHLEN	1024
 #endif
 
 #ifndef nitems
@@ -128,15 +97,11 @@
 #endif
 
 #if defined __linux__ || defined __CYGWIN__
-/* lib/libc/include/libc_private.h */
-extern const char *__progname;
+#include <stddef.h> /* size_t */
 
 /* include/stdlib.h */
 const char *getprogname(void);
 void setprogname(const char *);
-
-/* include/err.h */
-void errc(int, int, const char *, ...);
 
 /* include/string.h */
 size_t strlcat(char * __restrict, const char * __restrict, size_t);

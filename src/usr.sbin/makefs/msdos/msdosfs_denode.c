@@ -49,10 +49,7 @@
  * October 1992
  */
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
-
+#include <sys/compat.h> /* __unused */
 #include <sys/param.h>
 #include <sys/errno.h>
 
@@ -208,7 +205,7 @@ deget(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
  * Truncate the file described by dep to the length specified by length.
  */
 int
-detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
+detrunc(struct denode *dep, u_long length, int flags, struct m_ucred *cred)
 {
 	int error;
 	u_long eofentry;
@@ -327,7 +324,7 @@ detrunc(struct denode *dep, u_long length, int flags, struct ucred *cred)
  * Extend the file described by dep to length specified by length.
  */
 int
-deextend(struct denode *dep, u_long length, struct ucred *cred)
+deextend(struct denode *dep, u_long length, struct m_ucred *cred)
 {
 	struct msdosfsmount *pmp = dep->de_pmp;
 	u_long count;

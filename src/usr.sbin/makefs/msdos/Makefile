@@ -2,10 +2,10 @@ SRCS=	msdosfs_conv.c msdosfs_denode.c msdosfs_fat.c msdosfs_lookup.c msdosfs_vfs
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
+CFLAGS+=	-Wall -O2
 CFLAGS+=	-DMAKEFS
 # not -I.
-CFLAGS+=	-I.. -I../../../sys -I../../../sbin/newfs_msdos -I../../../lib/libnetbsd -I../../../lib/libutil
+CFLAGS+=	-I.. -I../../../sys -I../../../sbin/newfs_msdos -I../../../lib/libnetbsd
 
 .PHONY: all clean
 

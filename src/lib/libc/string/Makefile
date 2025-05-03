@@ -2,7 +2,7 @@ SRCS=	strlcat.c strlcpy.c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
+CFLAGS+=	-Wall -O2
 CFLAGS+=	-I. -I../../../sys
 
 .PHONY: all clean

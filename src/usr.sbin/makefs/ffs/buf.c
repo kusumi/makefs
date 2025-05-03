@@ -37,10 +37,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
-
+#include <sys/compat.h> /* __unused */
 #include <sys/param.h>
 #include <sys/time.h>
 
@@ -58,7 +55,7 @@ __FBSDID("$FreeBSD$");
 static TAILQ_HEAD(buftailhead, m_buf) buftail;
 
 int
-bread(struct m_vnode *vp, makefs_daddr_t blkno, int size, struct ucred *u1 __unused,
+bread(struct m_vnode *vp, makefs_daddr_t blkno, int size, struct m_ucred *u1 __unused,
     struct m_buf **bpp)
 {
 	off_t	offset;

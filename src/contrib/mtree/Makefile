@@ -2,8 +2,8 @@ SRCS=	misc.c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
-CFLAGS+=	-I. -I../../sys -I../../lib/libnetbsd -I../../lib/libutil
+CFLAGS+=	-Wall -O2
+CFLAGS+=	-I. -I../../sys -I../../lib/libnetbsd
 
 .PHONY: all clean
 

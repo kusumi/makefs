@@ -2,7 +2,7 @@ SRCS=	mkfs_hammer2.c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
+CFLAGS+=	-Wall -O2
 CFLAGS+=	-I. -I../../sys -I../hammer2
 
 .PHONY: all clean

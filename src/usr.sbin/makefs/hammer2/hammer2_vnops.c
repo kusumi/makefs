@@ -59,6 +59,8 @@
 #include <vfs/fifofs/fifo.h>
 */
 
+#include <sys/compat.h> /* MAXBSIZE */
+
 #include "hammer2.h"
 
 static int hammer2_read_file(hammer2_inode_t *ip, struct uio *uio,
@@ -613,7 +615,7 @@ vop_write_dirent(int *error, struct uio *uio, ino_t d_ino, uint8_t d_type,
 	struct m_dirent *dp;
 	size_t len;
 
-	len = M_DIRENT_RECLEN(d_namlen);
+	len = _DIRENT_RECLEN(d_namlen);
 	if (len > uio->uio_resid)
 		return(1);
 
@@ -684,7 +686,7 @@ hammer2_vop_readdir(struct vop_readdir_args *ap)
 	 */
 	if (saveoff == 0) {
 		inum = ip->meta.inum & HAMMER2_DIRHASH_USERMSK;
-		r = vop_write_dirent(&error, uio, inum, M_DT_DIR, 1, ".");
+		r = vop_write_dirent(&error, uio, inum, DT_DIR, 1, ".");
 		if (r)
 			goto done;
 		if (cookies)
@@ -700,7 +702,7 @@ hammer2_vop_readdir(struct vop_readdir_args *ap)
 		inum = ip->meta.inum & HAMMER2_DIRHASH_USERMSK;
 		if (ip != ip->pmp->iroot)
 			inum = ip->meta.iparent & HAMMER2_DIRHASH_USERMSK;
-		r = vop_write_dirent(&error, uio, inum, M_DT_DIR, 2, "..");
+		r = vop_write_dirent(&error, uio, inum, DT_DIR, 2, "..");
 		if (r)
 			goto done;
 		if (cookies)
@@ -750,7 +752,7 @@ hammer2_vop_readdir(struct vop_readdir_args *ap)
 					      HAMMER2_DIRHASH_USERMSK,
 					     dtype,
 					     ripdata->meta.name_len,
-					     (char *)ripdata->filename);
+					     (void *)ripdata->filename);
 			hammer2_xop_pdata(&xop->head);
 			if (r)
 				break;
@@ -827,7 +829,7 @@ hammer2_readdir(struct m_vnode *vp, void *buf, size_t size, off_t *offsetp,
 	assert(size > 0);
 	assert(size <= HAMMER2_PBUFSIZE);
 
-	struct iovec iov = {
+	struct m_iovec iov = {
 		.iov_base = buf,
 		.iov_len = size,
 	};
@@ -883,7 +885,7 @@ hammer2_readlink(struct m_vnode *vp, void *buf, size_t size)
 	assert(size > 0);
 	assert(size <= HAMMER2_PBUFSIZE);
 
-	struct iovec iov = {
+	struct m_iovec iov = {
 		.iov_base = buf,
 		.iov_len = size,
 	};
@@ -944,7 +946,7 @@ hammer2_read(struct m_vnode *vp, void *buf, size_t size, off_t offset)
 	assert(size > 0);
 	assert(size <= HAMMER2_PBUFSIZE);
 
-	struct iovec iov = {
+	struct m_iovec iov = {
 		.iov_base = buf,
 		.iov_len = size,
 	};
@@ -1051,7 +1053,7 @@ hammer2_write(struct m_vnode *vp, void *buf, size_t size, off_t offset)
 	assert(size > 0);
 	assert(size <= HAMMER2_PBUFSIZE);
 
-	struct iovec iov = {
+	struct m_iovec iov = {
 		.iov_base = buf,
 		.iov_len = size,
 	};
@@ -2233,7 +2235,7 @@ hammer2_vop_nsymlink(struct vop_nsymlink_args *ap)
 	if (error == 0) {
 		size_t bytes;
 		struct uio auio;
-		struct iovec aiov;
+		struct m_iovec aiov;
 
 		bytes = strlen(ap->a_target);
 

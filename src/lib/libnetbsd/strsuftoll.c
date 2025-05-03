@@ -62,21 +62,18 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
-
 #include <sys/types.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 
-#include <assert.h>
+//#include <assert.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
-#include <limits.h>
+//#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <util.h>
 
 #if 0
 #ifdef _LIBC

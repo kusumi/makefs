@@ -2,8 +2,8 @@ SRCS=	efun.c strsuftoll.c
 
 OBJS := $(SRCS:.c=.o)
 
-CFLAGS+=	-Wall -g
-CFLAGS+=	-I. -I../../sys -I../../lib/libutil
+CFLAGS+=	-Wall -O2
+CFLAGS+=	-I. -I../../sys
 
 .PHONY: all clean
 

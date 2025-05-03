@@ -47,11 +47,9 @@
  * October 1992
  */
 
-#include <sys/compat.h>
+#include <sys/compat.h> /* MAXBSIZE */
 #include <sys/cdefs.h>
 /* $NetBSD: msdosfs_vfsops.c,v 1.10 2016/01/30 09:59:27 mlelstv Exp $ */
-__FBSDID("$FreeBSD$");
-
 #include <sys/param.h>
 #include <sys/mount.h>
 

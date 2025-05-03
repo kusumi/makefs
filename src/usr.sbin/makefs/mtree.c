@@ -29,9 +29,7 @@
 #include "nbtool_config.h"
 #endif
 
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
+#include <sys/compat.h> /* getprogname */
 
 #include <sys/param.h>
 #include <sys/queue.h>
@@ -743,7 +741,10 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 		type = S_IFREG;
 	} else if (node->type != 0) {
 		type = node->type;
-		if (type == S_IFREG) {
+		if (type == S_IFLNK && node->symlink == NULL) {
+			mtree_error("%s: link type requires link keyword", node->name);
+			return (0);
+		} else if (type == S_IFREG) {
 			/* the named path is the default contents */
 			node->contents = mtree_file_path(node);
 		}
@@ -895,11 +896,11 @@ read_mtree_spec1(FILE *fp, bool def, const char *name)
 
 		if (strcmp(name, node->name) == 0) {
 			if (def == true) {
-				if (!dupsok)
+				if (dupsok == 0)
 					mtree_error(
 					    "duplicate definition of %s",
 					    name);
-				else
+				else if (dupsok == 1)
 					mtree_warning(
 					    "duplicate definition of %s",
 					    name);
@@ -1035,7 +1036,6 @@ read_mtree(const char *fname, fsnode *node)
 	int c, error;
 
 	errx(1, "mtree file unsupported"); /* XXX */
-
 	/* We do not yet support nesting... */
 	assert(node == NULL);
 
@@ -1111,7 +1111,7 @@ read_mtree(const char *fname, fsnode *node)
 
  out:
 	if (error > 0)
-		errc(1, error, "Error reading mtree file");
+		err(1, "Error reading mtree file");
 
 	if (fp != stdin)
 		fclose(fp);

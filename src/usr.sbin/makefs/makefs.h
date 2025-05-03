@@ -35,14 +35,11 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- *
- * $FreeBSD$
  */
 
 #ifndef	_MAKEFS_H
 #define	_MAKEFS_H
 
-#include <sys/compat.h>
 #include <sys/stat.h>
 #include <sys/time.h> /* gettimeofday */
 #include <err.h>
@@ -83,6 +80,7 @@ enum fi_flags {
 	FI_SIZED =	1<<0,		/* inode sized */
 	FI_ALLOCATED =	1<<1,		/* fsinode->ino allocated */
 	FI_WRITTEN =	1<<2,		/* inode written */
+	FI_ROOT =	1<<3,		/* root of a ZFS dataset */
 };
 
 typedef struct {
@@ -192,12 +190,14 @@ void		fs ## _makefs(const char *, const char *, fsnode *, fsinfo_t *)
 DECLARE_FUN(cd9660);
 DECLARE_FUN(ffs);
 DECLARE_FUN(msdos);
-DECLARE_FUN(v7fs);
 #ifdef MAKEFS_HAMMER2
 DECLARE_FUN(hammer2);
 #endif
 #ifdef MAKEFS_EXFAT
 DECLARE_FUN(exfat);
+#endif
+#ifdef HAVE_ZFS
+DECLARE_FUN(zfs);
 #endif
 
 extern	u_int		debug;

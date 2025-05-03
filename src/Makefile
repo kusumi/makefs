@@ -1,4 +1,4 @@
-SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos usr.sbin/makefs/v7fs sbin/fsck sbin/newfs_msdos sbin/newfs_v7fs sys/kern sys/fs/v7fs sys/ufs/ffs contrib/mtree lib/libnetbsd
+SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos sbin/fsck sbin/newfs_msdos sys/kern sys/ufs/ffs contrib/mtree lib/libnetbsd
 
 UNAME := $(shell uname -s)
 ifeq ($(UNAME), Linux)

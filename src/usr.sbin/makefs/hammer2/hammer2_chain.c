@@ -458,6 +458,7 @@ static
 hammer2_chain_t *
 hammer2_chain_lastdrop(hammer2_chain_t *chain, int depth)
 {
+	hammer2_dev_t *hmp __unused;
 	hammer2_chain_t *parent;
 	hammer2_chain_t *rdrop;
 
@@ -479,8 +480,6 @@ hammer2_chain_lastdrop(hammer2_chain_t *chain, int depth)
 		 *
 		 * If the chain has a parent the MODIFIED bit prevents
 		 * scrapping.
-		 *
-		 * Chains with UPDATE/MODIFIED are *not* put on the LRU list!
 		 */
 		if (chain->flags & (HAMMER2_CHAIN_UPDATE |
 				    HAMMER2_CHAIN_MODIFIED)) {
@@ -557,8 +556,6 @@ hammer2_chain_lastdrop(hammer2_chain_t *chain, int depth)
 	 *
 	 * Retry (return chain) if we fail to transition the refs to 0, else
 	 * return NULL indication nothing more to do.
-	 *
-	 * Chains with children are NOT put on the LRU list.
 	 */
 	if (chain->core.chain_count) {
 		if (atomic_cmpset_int(&chain->refs, 1, 0)) {
@@ -581,6 +578,7 @@ hammer2_chain_lastdrop(hammer2_chain_t *chain, int depth)
 	 * remaining possible accessors that might bump chain's refs before
 	 * we can safely drop chain's refs with intent to free the chain.
 	 */
+	hmp = chain->hmp;
 	rdrop = NULL;
 
 	parent = chain->parent;
@@ -992,13 +990,6 @@ hammer2_chain_load_data(hammer2_chain_t *chain)
 	 * by creating a zero-fill element.  We do not mark the buffer
 	 * dirty when creating a zero-fill element (the hammer2_chain_modify()
 	 * API must still be used to do that).
-	 *
-	 * The device buffer is variable-sized in powers of 2 down
-	 * to HAMMER2_MIN_ALLOC (typically 1K).  A 64K physical storage
-	 * chunk always contains buffers of the same size. (XXX)
-	 *
-	 * The minimum physical IO size may be larger than the variable
-	 * block size.
 	 */
 	bref = &chain->bref;
 
@@ -3619,15 +3610,6 @@ _hammer2_chain_delete_helper(hammer2_chain_t *parent, hammer2_chain_t *chain,
 
 		/*
 		 * delete blockmapped chain from its parent.
-		 *
-		 * The parent is not affected by any statistics in chain
-		 * which are pending synchronization.  That is, there is
-		 * nothing to undo in the parent since they have not yet
-		 * been incorporated into the parent.
-		 *
-		 * The parent is affected by statistics stored in inodes.
-		 * Those have already been synchronized, so they must be
-		 * undone.  XXX split update possible w/delete in middle?
 		 */
 		if (base) {
 			hammer2_base_delete(parent, base, count, chain, obref);
@@ -3639,10 +3621,6 @@ _hammer2_chain_delete_helper(hammer2_chain_t *parent, hammer2_chain_t *chain,
 		 * Chain is not blockmapped but a parent is present.
 		 * Atomically remove the chain from the parent.  There is
 		 * no blockmap entry to remove.
-		 *
-		 * Because chain was associated with a parent but not
-		 * synchronized, the chain's *_count_up fields contain
-		 * inode adjustment statistics which must be undone.
 		 */
 		hammer2_spin_ex(&chain->core.spin);
 		hammer2_spin_ex(&parent->core.spin);
@@ -4003,11 +3981,6 @@ hammer2_chain_create_indirect(hammer2_chain_t *parent,
 
 		/*
 		 * Shift the chain to the indirect block.
-		 *
-		 * WARNING! No reason for us to load chain data, pass NOSTATS
-		 *	    to prevent delete/insert from trying to access
-		 *	    inode stats (and thus asserting if there is no
-		 *	    chain->data loaded).
 		 *
 		 * WARNING! The (parent, chain) deletion may modify the parent
 		 *	    and invalidate the base pointer.
@@ -4955,7 +4928,7 @@ static int
 hammer2_base_find(hammer2_chain_t *parent,
 		  hammer2_blockref_t *base, int count,
 		  hammer2_key_t *key_nextp,
-		  hammer2_key_t key_beg, hammer2_key_t key_end)
+		  hammer2_key_t key_beg, hammer2_key_t key_end __unused)
 {
 	hammer2_blockref_t *scan;
 	hammer2_key_t scan_end;
@@ -5790,9 +5763,6 @@ hammer2_chain_inode_find(hammer2_pfs_t *pmp, hammer2_key_t inum,
 		hammer2_inode_drop(ip);
 		if (*chainp)
 			return (*chainp)->error;
-		hammer2_chain_unlock(*chainp);
-		hammer2_chain_drop(*chainp);
-		*chainp = NULL;
 		if (*parentp) {
 			hammer2_chain_unlock(*parentp);
 			hammer2_chain_drop(*parentp);

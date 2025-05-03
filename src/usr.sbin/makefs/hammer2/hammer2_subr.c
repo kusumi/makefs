@@ -40,9 +40,9 @@
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/uuid.h>
-#include <sys/dirent.h>
 */
 #include <sys/time.h>
+//#include <sys/dirent.h>
 
 #include "hammer2.h"
 #include "makefs.h"
@@ -55,25 +55,25 @@ hammer2_get_dtype(uint8_t type)
 {
 	switch(type) {
 	case HAMMER2_OBJTYPE_UNKNOWN:
-		return (M_DT_UNKNOWN);
+		return (DT_UNKNOWN);
 	case HAMMER2_OBJTYPE_DIRECTORY:
-		return (M_DT_DIR);
+		return (DT_DIR);
 	case HAMMER2_OBJTYPE_REGFILE:
-		return (M_DT_REG);
+		return (DT_REG);
 	case HAMMER2_OBJTYPE_FIFO:
-		return (M_DT_FIFO);
+		return (DT_FIFO);
 	case HAMMER2_OBJTYPE_CDEV:
-		return (M_DT_CHR);
+		return (DT_CHR);
 	case HAMMER2_OBJTYPE_BDEV:
-		return (M_DT_BLK);
+		return (DT_BLK);
 	case HAMMER2_OBJTYPE_SOFTLINK:
-		return (M_DT_LNK);
+		return (DT_LNK);
 	case HAMMER2_OBJTYPE_SOCKET:
-		return (M_DT_SOCK);
+		return (DT_SOCK);
 	case HAMMER2_OBJTYPE_WHITEOUT:	/* not supported */
-		return (M_DT_UNKNOWN);
+		return (DT_UNKNOWN);
 	default:
-		return (M_DT_UNKNOWN);
+		return (DT_UNKNOWN);
 	}
 	/* not reached */
 }
@@ -169,22 +169,14 @@ hammer2_time_to_timeval(uint64_t xtime, struct timeval *tv)
 uint32_t
 hammer2_to_unix_xid(const hammer2_uuid_t *u)
 {
-#if defined __linux__ || defined __CYGWIN__
-	const struct __uuid *uuid = (const struct __uuid *)u->uuid;
-#else
-	const struct __uuid *uuid = (void *)&u->uuid;
-#endif
+	const struct m_uuid *uuid = (void *)&u->uuid;
 	return(*(const uint32_t *)&uuid->node[2]);
 }
 
 void
 hammer2_guid_to_uuid(hammer2_uuid_t *u, uint32_t guid)
 {
-#if defined __linux__ || defined __CYGWIN__
-	struct __uuid *uuid = (struct __uuid *)u->uuid;
-#else
-	struct __uuid *uuid = (void *)&u->uuid;
-#endif
+	struct m_uuid *uuid = (void *)&u->uuid;
 	bzero(uuid, sizeof(*uuid));
 	*(uint32_t *)&uuid->node[2] = guid;
 }

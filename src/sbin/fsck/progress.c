@@ -30,10 +30,6 @@
  */
 
 #ifndef SMALL
-#include <sys/compat.h>
-#include <sys/cdefs.h>
-__RCSID("$NetBSD: progress.c,v 1.5 2009/04/11 06:48:36 lukem Exp $");
-
 /*
  * File system independent fsck progress bar routines.
  */

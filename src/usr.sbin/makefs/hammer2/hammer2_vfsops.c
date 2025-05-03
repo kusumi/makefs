@@ -210,9 +210,9 @@ static int hammer2_vfs_unmount(struct m_mount *mp, int mntflags);
 static int hammer2_vfs_root(struct m_mount *mp, struct m_vnode **vpp);
 */
 static int hammer2_vfs_statfs(struct m_mount *mp, struct m_statfs *sbp,
-				struct ucred *cred);
+				struct m_ucred *cred);
 static int hammer2_vfs_statvfs(struct m_mount *mp, struct statvfs *sbp,
-				struct ucred *cred);
+				struct m_ucred *cred);
 /*
 static int hammer2_vfs_fhtovp(struct m_mount *mp, struct m_vnode *rootvp,
 				struct fid *fhp, struct m_vnode **vpp);
@@ -991,7 +991,7 @@ hammer2_vfs_mount(struct m_vnode *makefs_devvp, struct m_mount *mp,
 
 	hmp = NULL;
 	pmp = NULL;
-	devstr = NULL;
+	devstr = "(null)";
 
 	kprintf("hammer2_mount: device=\"%s\" label=\"%s\" rdonly=%d\n",
 		devstr, label, ronly);
@@ -1152,7 +1152,6 @@ next_hmp:
 		hmp->vchain.data = (void *)&hmp->voldata;
 		hmp->vchain.bref.type = HAMMER2_BREF_TYPE_VOLUME;
 		hmp->vchain.bref.data_off = 0 | HAMMER2_PBUFRADIX;
-		hmp->vchain.bref.mirror_tid = hmp->voldata.mirror_tid;
 		hammer2_chain_init(&hmp->vchain);
 
 		/*
@@ -1170,7 +1169,6 @@ next_hmp:
 		hmp->fchain.data = (void *)&hmp->voldata.freemap_blockset;
 		hmp->fchain.bref.type = HAMMER2_BREF_TYPE_FREEMAP;
 		hmp->fchain.bref.data_off = 0 | HAMMER2_PBUFRADIX;
-		hmp->fchain.bref.mirror_tid = hmp->voldata.freemap_tid;
 		hmp->fchain.bref.methods =
 			HAMMER2_ENC_CHECK(HAMMER2_CHECK_FREEMAP) |
 			HAMMER2_ENC_COMP(HAMMER2_COMP_NONE);
@@ -1985,7 +1983,7 @@ hammer2_vfs_root(struct m_mount *mp, struct m_vnode **vpp)
  */
 static
 int
-hammer2_vfs_statfs(struct m_mount *mp, struct m_statfs *sbp, struct ucred *cred)
+hammer2_vfs_statfs(struct m_mount *mp, struct m_statfs *sbp, struct m_ucred *cred)
 {
 	hammer2_pfs_t *pmp;
 	hammer2_dev_t *hmp;
@@ -2018,7 +2016,7 @@ hammer2_vfs_statfs(struct m_mount *mp, struct m_statfs *sbp, struct ucred *cred)
 		tmp.f_bavail = tmp.f_bfree;
 
 		assert(!cred); /* unsupported */
-		if (cred /*&& cred->cr_uid != 0*/) {
+		if (cred && cred->cr_uid != 0) {
 			uint64_t adj;
 
 			/* 5% */
@@ -2041,7 +2039,7 @@ hammer2_vfs_statfs(struct m_mount *mp, struct m_statfs *sbp, struct ucred *cred)
 
 static
 int
-hammer2_vfs_statvfs(struct m_mount *mp, struct statvfs *sbp, struct ucred *cred)
+hammer2_vfs_statvfs(struct m_mount *mp, struct statvfs *sbp, struct m_ucred *cred)
 {
 	hammer2_pfs_t *pmp;
 	hammer2_dev_t *hmp;
@@ -2073,7 +2071,7 @@ hammer2_vfs_statvfs(struct m_mount *mp, struct statvfs *sbp, struct ucred *cred)
 		tmp.f_bavail = tmp.f_bfree;
 
 		assert(!cred); /* unsupported */
-		if (cred /*&& cred->cr_uid != 0*/) {
+		if (cred && cred->cr_uid != 0) {
 			uint64_t adj;
 
 			/* 5% */
@@ -3038,7 +3036,7 @@ hammer2_voldata_modify(hammer2_dev_t *hmp)
  * Returns 2 if the filesystem has less than 2%/5% (user/root) remaining.
  */
 int
-hammer2_vfs_enospace(hammer2_inode_t *ip, off_t bytes, struct ucred *cred)
+hammer2_vfs_enospace(hammer2_inode_t *ip, off_t bytes, struct m_ucred *cred)
 {
 	hammer2_pfs_t *pmp;
 	hammer2_dev_t *hmp;
@@ -3076,7 +3074,7 @@ hammer2_vfs_enospace(hammer2_inode_t *ip, off_t bytes, struct ucred *cred)
 		free_nominal = pmp->free_nominal;
 	}
 	assert(!cred); /* unsupported */
-	if (cred /*&& cred->cr_uid != 0*/) {
+	if (cred && cred->cr_uid != 0) {
 		if ((int64_t)(free_nominal - bytes) <
 		    (int64_t)free_reserved) {
 			return 2;

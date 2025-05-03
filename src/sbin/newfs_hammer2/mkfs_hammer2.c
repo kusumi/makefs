@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/compat.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #ifdef __DragonFly__
@@ -49,12 +48,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <err.h>
-
-#if defined __linux__ || defined __CYGWIN__
-#include <uuid/uuid.h>
-#else
-#include <uuid.h>
-#endif
+//#include <uuid.h>
 
 #include <vfs/hammer2/hammer2_disk.h>
 #include <vfs/hammer2/hammer2_xxhash.h>
@@ -440,9 +434,6 @@ format_hammer2_inode(hammer2_volume_t *vol, hammer2_mkfs_options_t *opt,
 	rawip->meta.inum = 0;		/* super root inode, inumber 0 */
 	rawip->meta.nlinks = 2;		/* directory link count compat */
 
-	rawip->meta.name_len = 0;	/* super-root is unnamed */
-	rawip->meta.name_key = 0;
-
 	rawip->meta.comp_algo = HAMMER2_ENC_ALGO(HAMMER2_COMP_AUTOZERO);
 	rawip->meta.check_algo = HAMMER2_ENC_ALGO(HAMMER2_CHECK_XXHASH64);
 
@@ -746,11 +737,12 @@ hammer2_mkfs(int ac, char **av, hammer2_mkfs_options_t *opt)
 				size = resid;
 		}
 
-		assert(size > 0);
 		if (i == fso.nvolumes - 1)
 			size &= ~HAMMER2_VOLUME_ALIGNMASK64;
 		else
 			size &= ~HAMMER2_FREEMAP_LEVEL1_MASK;
+		if (size == 0)
+			errx(1, "%s has aligned size of 0", av[i]);
 		hammer2_install_volume(vol, fd, i, av[i], fso.total_size, size);
 		fso.total_size += size;
 	}

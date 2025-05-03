@@ -32,13 +32,12 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- *	@(#)iso.h	8.6 (Berkeley) 5/10/95
- * $FreeBSD$
  */
 
 #ifndef _ISOFS_CD9660_ISO_H_
 #define _ISOFS_CD9660_ISO_H_
+
+#include <sys/compat.h> /* __packed */
 
 #define ISODCL(from, to) (to - from + 1)
 
@@ -221,15 +220,6 @@ struct iso_extended_attributes {
 enum ISO_FTYPE	{ ISO_FTYPE_DEFAULT, ISO_FTYPE_9660, ISO_FTYPE_RRIP,
 		  ISO_FTYPE_JOLIET, ISO_FTYPE_ECMA, ISO_FTYPE_HIGH_SIERRA };
 
-#ifndef	ISOFSMNT_ROOT
-#define	ISOFSMNT_ROOT	0
-#endif
-
-/*
- * When ino_t becomes 64-bit, we can remove this definition in favor of ino_t.
- */
-typedef __uint64_t cd_ino_t;
-
 struct iso_mnt {
 	uint64_t im_flags;
 
@@ -239,6 +229,11 @@ struct iso_mnt {
 
 	struct g_consumer *im_cp;
 	struct bufobj *im_bo;
+
+	uid_t	im_uid;
+	gid_t	im_gid;
+	mode_t	im_fmask;
+	mode_t	im_dmask;
 
 	int logical_block_size;
 	int im_bshift;
@@ -263,9 +258,9 @@ struct iso_mnt {
 struct ifid {
 	u_short		ifid_len;
 	u_short		ifid_pad;
-	cd_ino_t	ifid_ino;
+	ino_t		ifid_ino;
 	long		ifid_start;
-};
+} __packed;
 
 #define VFSTOISOFS(mp)	((struct iso_mnt *)((mp)->mnt_data))
 
@@ -274,7 +269,7 @@ struct ifid {
 #define lblkno(imp, loc)	((loc) >> (imp)->im_bshift)
 #define blksize(imp, ip, lbn)	((imp)->logical_block_size)
 
-int cd9660_vget_internal(struct mount *, cd_ino_t, int, struct vnode **, int,
+int cd9660_vget_internal(struct mount *, ino_t	, int, struct vnode **, int,
 			 struct iso_directory_record *);
 #define cd9660_sysctl ((int (*)(int *, u_int, void *, size_t *, void *, \
 				size_t, struct proc *))eopnotsupp)
@@ -285,7 +280,7 @@ extern struct vop_vector cd9660_fifoops;
 int isochar(u_char *, u_char *, int, u_short *, int *, int, void *);
 int isofncmp(u_char *, int, u_char *, int, int, int, void *, void *);
 void isofntrans(u_char *, int, u_char *, u_short *, int, int, int, int, void *);
-cd_ino_t isodirino(struct iso_directory_record *, struct iso_mnt *);
+ino_t isodirino(struct iso_directory_record *, struct iso_mnt *);
 u_short sgetrune(const char *, size_t, char const **, int, void *);
 
 #endif /* _KERNEL */

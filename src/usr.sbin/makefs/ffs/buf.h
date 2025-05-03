@@ -35,8 +35,6 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- *
- * $FreeBSD$
  */
 
 #ifndef _FFS_BUF_H
@@ -61,7 +59,10 @@ enum vtagtype	{
 
 struct componentname;
 struct makefs_fsinfo;
-struct ucred;
+
+struct m_ucred {
+	int cr_uid;
+};
 
 struct m_vnode {
 	struct makefs_fsinfo *fs;
@@ -93,7 +94,7 @@ struct m_buf {
 };
 
 void		bcleanup(void);
-int		bread(struct m_vnode *, makefs_daddr_t, int, struct ucred *,
+int		bread(struct m_vnode *, makefs_daddr_t, int, struct m_ucred *,
     struct m_buf **);
 void		brelse(struct m_buf *);
 int		bwrite(struct m_buf *);

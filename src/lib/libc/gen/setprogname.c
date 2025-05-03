@@ -1,8 +1,4 @@
-#include <sys/compat.h> /* __progname */
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
-
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <string.h>
 
 //#include "libc_private.h"

@@ -36,6 +36,8 @@
 #ifndef _VFS_HAMMER2_DISK_H_
 #define _VFS_HAMMER2_DISK_H_
 
+#include <sys/compat.h> /* __packed */
+
 #if defined __linux__ || defined __CYGWIN__
 #include <uuid/uuid.h>
 #else
@@ -435,7 +437,7 @@ typedef uint32_t hammer2_crc32_t;
  *
  * A DCE 1.1 compatible source representation of UUIDs.
  */
-struct __uuid {
+struct m_uuid {
 	uint32_t	time_low;
 	uint16_t	time_mid;
 	uint16_t	time_hi_and_version;
@@ -546,6 +548,22 @@ typedef struct hammer2_volconf hammer2_volconf_t;
 #define DMSG_VOLF_CONN_EF	0x40	/* media errors flagged */
 #define DMSG_VOLF_CONN_PRI	0x0F	/* select priority 0-15 (15=best) */
 
+struct dmsg_lnk_hammer2_volconf {
+	//dmsg_hdr_t		head;
+	hammer2_volconf_t	copy;	/* copy spec */
+	int32_t			index;
+	int32_t			unused01;
+	uuid_t			mediaid;
+	int64_t			reserved02[32];
+} __packed;
+
+typedef struct dmsg_lnk_hammer2_volconf dmsg_lnk_hammer2_volconf_t;
+
+#define DMSG_LNK_HAMMER2_VOLCONF DMSG_LNK(DMSG_LNK_CMD_HAMMER2_VOLCONF, \
+					  dmsg_lnk_hammer2_volconf)
+
+#define H2_LNK_VOLCONF(msg)	((dmsg_lnk_hammer2_volconf_t *)(msg)->any.buf)
+
 /*
  * HAMMER2 directory entry header (embedded in blockref)  exactly 16 bytes
  */
@@ -580,7 +598,7 @@ typedef struct hammer2_dirent_head hammer2_dirent_head_t;
  *
  * Simple check codes are not sufficient for unverified dedup.  Even with
  * a maximally-sized check code unverified dedup should only be used in
- * in subdirectory trees where you do not need 100% data integrity.
+ * subdirectory trees where you do not need 100% data integrity.
  *
  * Unverified dedup is deduping based on meta-data only without verifying
  * that the data blocks are actually identical.  Verified dedup guarantees
@@ -882,7 +900,7 @@ struct hammer2_bmap_data {
 	uint32_t reserved14;	/* 14 */
 	uint32_t reserved18;	/* 18 */
 	uint32_t avail;		/* 1C */
-	uint32_t reserved20[8];	/* 20-3F 256 bits manages 128K/1KB/2-bits */
+	uint32_t reserved20[8];	/* 20-3F */
 				/* 40-7F 512 bits manages 4MB of storage */
 	hammer2_bitmap_t bitmapq[HAMMER2_BMAP_ELEMENTS];
 } __packed;
@@ -960,6 +978,8 @@ struct hammer2_inode_meta {
 	uint16_t	name_len;	/* 0080 filename length */
 	uint8_t		ncopies;	/* 0082 ncopies to local media */
 	uint8_t		comp_algo;	/* 0083 compression request & algo */
+	uint8_t		unused84;	/* 0084 */
+	uint8_t		check_algo;	/* 0085 check code request & algo */
 
 	/*
 	 * These fields are currently only applicable to PFSROOTs.
@@ -970,8 +990,6 @@ struct hammer2_inode_meta {
 	 *	 a separate node.  {pfs_clid, pfs_fsid} must be used for
 	 *	 registration in the cluster.
 	 */
-	uint8_t		target_type;	/* 0084 hardlink target type */
-	uint8_t		check_algo;	/* 0085 check code request & algo */
 	uint8_t		pfs_nmasters;	/* 0086 (if PFSROOT) if multi-master */
 	uint8_t		pfs_type;	/* 0087 (if PFSROOT) node type */
 	hammer2_tid_t	pfs_inum;	/* 0088 (if PFSROOT) inum allocator */
@@ -984,9 +1002,9 @@ struct hammer2_inode_meta {
 	 * the sysop and in-memory structures keep track of inheritance.
 	 */
 	hammer2_key_t	data_quota;	/* 00B0 subtree quota in bytes */
-	hammer2_key_t	unusedB8;	/* 00B8 subtree byte count */
+	hammer2_key_t	unusedB8;	/* 00B8 */
 	hammer2_key_t	inode_quota;	/* 00C0 subtree quota inode count */
-	hammer2_key_t	unusedC8;	/* 00C8 subtree inode count */
+	hammer2_key_t	unusedC8;	/* 00C8 */
 
 	/*
 	 * The last snapshot tid is tested against modify_tid to determine

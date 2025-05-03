@@ -39,10 +39,8 @@
 #define _HAMMER2_HAMMER2_COMPAT_H
 
 #include <sys/statvfs.h>
-#ifdef __DragonFly__
-#include <sys/spinlock.h>
-#endif
-#include <sys/uio.h> /* struct iovec */
+//#include <sys/spinlock.h>
+//#include <sys/uio.h> /* UIO_XXX in *BSD */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,7 +129,7 @@
 
 #define NOOFFSET	(-1LL)
 
-#define KNOTE(list, hint)
+#define KNOTE(list, hint)	{}
 
 #define NOTE_DELETE	0x0001
 #define NOTE_WRITE	0x0002
@@ -156,16 +154,34 @@
 #define VA_UID_UUID_VALID	0x0004
 #define VA_GID_UUID_VALID	0x0008
 
-/* Avoid conflict with <sys/dirent.h> */
-#define M_DT_UNKNOWN	0
-#define M_DT_FIFO	1
-#define M_DT_CHR	2
-#define M_DT_DIR	4
-#define M_DT_BLK	6
-#define M_DT_REG	8
-#define M_DT_LNK	10
-#define M_DT_SOCK	12
-#define M_DT_WHT	14
+/* m_dirent::d_type is not used for anything in makefs */
+#ifndef DT_UNKNOWN
+#define DT_UNKNOWN	0
+#endif
+#ifndef DT_FIFO
+#define DT_FIFO	1
+#endif
+#ifndef DT_CHR
+#define DT_CHR	2
+#endif
+#ifndef DT_DIR
+#define DT_DIR	4
+#endif
+#ifndef DT_BLK
+#define DT_BLK	6
+#endif
+#ifndef DT_REG
+#define DT_REG	8
+#endif
+#ifndef DT_LNK
+#define DT_LNK	10
+#endif
+#ifndef DT_SOCK
+#define DT_SOCK	12
+#endif
+#ifndef DT_WHT
+#define DT_WHT	14
+#endif
 
 extern int hz;
 extern int ticks;
@@ -236,7 +252,8 @@ struct m_dirent {
 	char		d_name[255 + 1];/* name, NUL-terminated */
 };
 
-#define M_DIRENT_RECLEN(namelen) \
+#undef _DIRENT_RECLEN
+#define _DIRENT_RECLEN(namelen) \
 	((__offsetof(struct m_dirent, d_name) + (namelen) + 1 + 7) & ~7)
 
 struct bio {
@@ -297,7 +314,7 @@ struct vop_generic_args {
 struct vop_open_args {
 	struct m_vnode *a_vp;
 	int a_mode;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct file **a_fpp;
 };
 
@@ -311,7 +328,7 @@ struct vop_access_args {
 	struct m_vnode *a_vp;
 	int a_mode;
 	int a_flags;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_getattr_args {
@@ -327,21 +344,21 @@ struct vop_getattr_lite_args {
 struct vop_setattr_args {
 	struct m_vnode *a_vp;
 	struct vattr *a_vap;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_read_args {
 	struct m_vnode *a_vp;
 	struct uio *a_uio;
 	int a_ioflag;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_write_args {
 	struct m_vnode *a_vp;
 	struct uio *a_uio;
 	int a_ioflag;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_ioctl_args {
@@ -349,7 +366,7 @@ struct vop_ioctl_args {
 	u_long a_command;
 	caddr_t a_data;
 	int a_fflag;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct sysmsg *a_sysmsg;
 };
 
@@ -367,7 +384,7 @@ struct vop_fsync_args {
 struct vop_readdir_args {
 	struct m_vnode *a_vp;
 	struct uio *a_uio;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	int *a_eofflag;
 	int *a_ncookies;
 	off_t **a_cookies;
@@ -377,7 +394,7 @@ struct vop_readdir_args {
 struct vop_readlink_args {
 	struct m_vnode *a_vp;
 	struct uio *a_uio;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_inactive_args {
@@ -440,20 +457,20 @@ struct vop_mountctl_args {
 struct vop_markatime_args {
 	int a_op;
 	struct m_vnode *a_vp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_nresolve_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct m_vnode **a_vpp; /* makefs */
 };
 
 struct vop_nlookupdotdot_args {
 	struct m_vnode *a_dvp;
 	struct m_vnode **a_vpp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	char **a_fakename;
 };
 
@@ -461,7 +478,7 @@ struct vop_ncreate_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
 	struct m_vnode **a_vpp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct vattr *a_vap;
 };
 
@@ -469,7 +486,7 @@ struct vop_nmkdir_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
 	struct m_vnode **a_vpp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct vattr *a_vap;
 };
 
@@ -477,7 +494,7 @@ struct vop_nmknod_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
 	struct m_vnode **a_vpp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct vattr *a_vap;
 };
 
@@ -485,14 +502,14 @@ struct vop_nlink_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
 	struct m_vnode *a_vp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_nsymlink_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
 	struct m_vnode **a_vpp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 	struct vattr *a_vap;
 	char *a_target;
 };
@@ -500,13 +517,13 @@ struct vop_nsymlink_args {
 struct vop_nremove_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_nrmdir_args {
 	struct nchandle *a_nch;
 	struct m_vnode *a_dvp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 struct vop_nrename_args {
@@ -514,7 +531,7 @@ struct vop_nrename_args {
 	struct nchandle *a_tnch;
 	struct m_vnode *a_fdvp;
 	struct m_vnode *a_tdvp;
-	struct ucred *a_cred;
+	struct m_ucred *a_cred;
 };
 
 #define vop_defaultop	NULL
@@ -560,30 +577,33 @@ struct vop_ops {
 	int (*vop_nrename)(struct vop_nrename_args *);
 };
 
-#if defined __linux__ || defined __CYGWIN__ || defined __DragonFly__
-enum uio_seg {
+enum m_uio_seg {
 	UIO_USERSPACE,
 	UIO_SYSSPACE,
 	UIO_NOCOPY,
 };
 
-enum uio_rw {
+enum m_uio_rw {
 	UIO_READ,
 	UIO_WRITE
 };
-#endif
 
-#if defined __NetBSD__ || defined __OpenBSD__
-#define UIO_NOCOPY	2
-#endif
+struct m_iovec {
+	void *iov_base;
+	size_t iov_len;
+};
 
+/*
+ * struct uio exists in <sys/uio.h> in *BSD if _KERNEL,
+ * but does not exist in Linux / Cygwin.
+ */
 struct uio {
-	struct iovec *uio_iov;
+	struct m_iovec *uio_iov;
 	int uio_iovcnt;
 	off_t uio_offset;
 	size_t uio_resid;
-	enum uio_seg uio_segflg;
-	enum uio_rw uio_rw;
+	enum m_uio_seg uio_segflg;
+	enum m_uio_rw uio_rw;
 	struct thread *uio_td;
 };
 
@@ -605,13 +625,9 @@ typedef mtx_t hammer2_mtx_t;
 typedef u_int mtx_state_t;
 typedef mtx_state_t hammer2_mtx_state_t;
 
-#ifndef __DragonFly__
-struct spinlock {
+typedef struct {
 	int lock;
-};
-#endif
-
-typedef struct spinlock hammer2_spin_t;
+} hammer2_spin_t;
 
 static __inline
 void
@@ -771,7 +787,7 @@ vfs_mountedon(struct m_vnode *vp)
 static __inline
 uid_t
 vop_helper_create_uid(struct m_mount *mp, mode_t dmode, uid_t duid,
-			struct ucred *cred, mode_t *modep)
+			struct m_ucred *cred, mode_t *modep)
 {
 	return (getuid());
 }

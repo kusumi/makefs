@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/compat.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -49,12 +48,7 @@
 #include <string.h>
 #include <errno.h>
 #include <err.h>
-
-#if defined __linux__ || defined __CYGWIN__
-#include <uuid/uuid.h>
-#else
-#include <uuid.h>
-#endif
+//#include <uuid.h>
 
 #ifdef __CYGWIN__
 #include <cygwin/fs.h> /* BLKGETSIZE, BLKSSZGET */
@@ -77,6 +71,35 @@
 #include <vfs/hammer2/hammer2_ioctl.h>
 
 #include "hammer2_subs.h"
+
+#if 0
+/*
+ * Obtain a file descriptor that the caller can execute ioctl()'s on.
+ */
+int
+hammer2_ioctl_handle(const char *sel_path)
+{
+	struct hammer2_ioc_version info;
+	int fd;
+
+	if (sel_path == NULL)
+		sel_path = ".";
+
+	fd = open(sel_path, O_RDONLY, 0);
+	if (fd < 0) {
+		fprintf(stderr, "hammer2: Unable to open %s: %s\n",
+			sel_path, strerror(errno));
+		return(-1);
+	}
+	if (ioctl(fd, HAMMER2IOC_VERSION_GET, &info) < 0) {
+		fprintf(stderr, "hammer2: '%s' is not a hammer2 filesystem\n",
+			sel_path);
+		close(fd);
+		return(-1);
+	}
+	return (fd);
+}
+#endif
 
 const char *
 hammer2_time64_to_str(uint64_t htime64, char **strp)
@@ -173,6 +196,90 @@ hammer2_pfssubtype_to_str(uint8_t subtype)
 	}
 }
 
+#if 0
+const char *
+hammer2_breftype_to_str(uint8_t type)
+{
+	switch(type) {
+	case HAMMER2_BREF_TYPE_EMPTY:
+		return("empty");
+	case HAMMER2_BREF_TYPE_INODE:
+		return("inode");
+	case HAMMER2_BREF_TYPE_INDIRECT:
+		return("indirect");
+	case HAMMER2_BREF_TYPE_DATA:
+		return("data");
+	case HAMMER2_BREF_TYPE_DIRENT:
+		return("dirent");
+	case HAMMER2_BREF_TYPE_FREEMAP_NODE:
+		return("freemap_node");
+	case HAMMER2_BREF_TYPE_FREEMAP_LEAF:
+		return("freemap_leaf");
+	case HAMMER2_BREF_TYPE_INVALID:
+		return("invalid");
+	case HAMMER2_BREF_TYPE_FREEMAP:
+		return("freemap");
+	case HAMMER2_BREF_TYPE_VOLUME:
+		return("volume");
+	default:
+		return("unknown");
+	}
+}
+
+const char *
+hammer2_compmode_to_str(uint8_t comp_algo)
+{
+	static char buf[64];
+	static const char *comps[] = HAMMER2_COMP_STRINGS;
+	int comp = HAMMER2_DEC_ALGO(comp_algo);
+	int level = HAMMER2_DEC_LEVEL(comp_algo);
+
+	if (level) {
+		if (comp >= 0 && comp < HAMMER2_COMP_STRINGS_COUNT)
+			snprintf(buf, sizeof(buf), "%s:%d",
+				 comps[comp], level);
+		else
+			snprintf(buf, sizeof(buf), "unknown(%d):%d",
+				 comp, level);
+	} else {
+		if (comp >= 0 && comp < HAMMER2_COMP_STRINGS_COUNT)
+			snprintf(buf, sizeof(buf), "%s:default",
+				 comps[comp]);
+		else
+			snprintf(buf, sizeof(buf), "unknown(%d):default",
+				 comp);
+	}
+	return (buf);
+}
+
+const char *
+hammer2_checkmode_to_str(uint8_t check_algo)
+{
+	static char buf[64];
+	static const char *checks[] = HAMMER2_CHECK_STRINGS;
+	int check = HAMMER2_DEC_ALGO(check_algo);
+	int level = HAMMER2_DEC_LEVEL(check_algo);
+
+	/*
+	 * NOTE: Check algorithms normally do not encode any level.
+	 */
+	if (level) {
+		if (check >= 0 && check < HAMMER2_CHECK_STRINGS_COUNT)
+			snprintf(buf, sizeof(buf), "%s:%d",
+				 checks[check], level);
+		else
+			snprintf(buf, sizeof(buf), "unknown(%d):%d",
+				 check, level);
+	} else {
+		if (check >= 0 && check < HAMMER2_CHECK_STRINGS_COUNT)
+			snprintf(buf, sizeof(buf), "%s", checks[check]);
+		else
+			snprintf(buf, sizeof(buf), "unknown(%d)", check);
+	}
+	return (buf);
+}
+#endif
+
 const char *
 sizetostr(hammer2_off_t size)
 {
@@ -195,6 +302,32 @@ sizetostr(hammer2_off_t size)
 	}
 	return(buf);
 }
+
+#if 0
+const char *
+counttostr(hammer2_off_t size)
+{
+	static char buf[32];
+
+	if (size < 1024 / 2) {
+		snprintf(buf, sizeof(buf), "%jd",
+			 (intmax_t)size);
+	} else if (size < 1024 * 1024 / 2) {
+		snprintf(buf, sizeof(buf), "%jd",
+			 (intmax_t)size);
+	} else if (size < 1024 * 1024 * 1024LL / 2) {
+		snprintf(buf, sizeof(buf), "%6.2fM",
+			 (double)size / (1024 * 1024));
+	} else if (size < 1024 * 1024 * 1024LL * 1024LL / 2) {
+		snprintf(buf, sizeof(buf), "%6.2fG",
+			 (double)(size / (1024 * 1024 * 1024LL)));
+	} else {
+		snprintf(buf, sizeof(buf), "%6.2fT",
+			 (double)(size / (1024 * 1024 * 1024LL * 1024LL)));
+	}
+	return(buf);
+}
+#endif
 
 hammer2_off_t
 check_volume(int fd)
@@ -353,3 +486,49 @@ dirhash(const char *aname, size_t len)
 
 	return (key);
 }
+
+#if 0
+char **
+get_hammer2_mounts(int *acp)
+{
+	struct statfs *fs;
+	char **av;
+	int n;
+	int w;
+	int i;
+
+	/*
+	 * Get a stable list of mount points
+	 */
+again:
+	n = getfsstat(NULL, 0, MNT_NOWAIT);
+	av = calloc(n, sizeof(char *));
+	fs = calloc(n, sizeof(struct statfs));
+	if (getfsstat(fs, sizeof(*fs) * n, MNT_NOWAIT) != n) {
+		free(av);
+		free(fs);
+		goto again;
+	}
+
+	/*
+	 * Pull out hammer2 filesystems only
+	 */
+	for (i = w = 0; i < n; ++i) {
+		if (strcmp(fs[i].f_fstypename, "hammer2") != 0)
+			continue;
+		av[w++] = strdup(fs[i].f_mntonname);
+	}
+	*acp = w;
+	free(fs);
+
+	return av;
+}
+
+void
+put_hammer2_mounts(int ac, char **av)
+{
+	while (--ac >= 0)
+		free(av[ac]);
+	free(av);
+}
+#endif

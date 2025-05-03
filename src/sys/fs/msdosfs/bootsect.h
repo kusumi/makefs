@@ -1,4 +1,3 @@
-/* $FreeBSD$ */
 /*	$NetBSD: bootsect.h,v 1.9 1997/11/17 15:36:17 ws Exp $	*/
 
 /*-
@@ -18,6 +17,8 @@
  */
 #ifndef _FS_MSDOSFS_BOOTSECT_H_
 #define	_FS_MSDOSFS_BOOTSECT_H_
+
+#include <stdint.h> /* uintX_t */
 
 /*
  * Format of a boot sector.  This is the first sector on a DOS floppy disk
