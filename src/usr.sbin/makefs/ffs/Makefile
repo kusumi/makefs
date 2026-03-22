@@ -1,8 +1,8 @@
-SRCS=	buf.c ffs_alloc.c ffs_balloc.c ffs_bswap.c ffs_subr.c mkfs.c ufs_bmap.c
+SRCS:=	buf.c ffs_alloc.c ffs_balloc.c ffs_bswap.c ffs_subr.c mkfs.c ufs_bmap.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 # not -I.
 CFLAGS+=	-I.. -I../../../sys -I../../../lib/libnetbsd
 
@@ -12,4 +12,5 @@ all: $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o
+	rm -f $(OBJS) $(DEPS)
+-include $(DEPS)

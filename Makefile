@@ -1,6 +1,9 @@
-SUBDIRS = src
+SUBDIRS:=src
 
 .PHONY: all clean $(SUBDIRS)
+
+CFLAGS:=	-Wall -O2 -MMD -MP
+export CFLAGS
 
 all: $(SUBDIRS)
 $(SUBDIRS):

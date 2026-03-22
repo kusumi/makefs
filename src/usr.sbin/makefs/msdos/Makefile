@@ -1,8 +1,8 @@
-SRCS=	msdosfs_conv.c msdosfs_denode.c msdosfs_fat.c msdosfs_lookup.c msdosfs_vfsops.c msdosfs_vnops.c
+SRCS:=	msdosfs_conv.c msdosfs_denode.c msdosfs_fat.c msdosfs_lookup.c msdosfs_vfsops.c msdosfs_vnops.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-DMAKEFS
 # not -I.
 CFLAGS+=	-I.. -I../../../sys -I../../../sbin/newfs_msdos -I../../../lib/libnetbsd
@@ -13,4 +13,5 @@ all: $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o
+	rm -f $(OBJS) $(DEPS)
+-include $(DEPS)

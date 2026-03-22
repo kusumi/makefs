@@ -1,8 +1,8 @@
-SRCS=	hammer2_zlib_adler32.c hammer2_zlib_deflate.c hammer2_zlib_inffast.c hammer2_zlib_inflate.c hammer2_zlib_inftrees.c hammer2_zlib_trees.c hammer2_zlib_zutil.c
+SRCS:=	hammer2_zlib_adler32.c hammer2_zlib_deflate.c hammer2_zlib_inffast.c hammer2_zlib_inflate.c hammer2_zlib_inftrees.c hammer2_zlib_trees.c hammer2_zlib_zutil.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-I. -I../../../../sys -I../.. -I../../../../sbin/hammer2 -I../../../../sbin/newfs_hammer2 -I../../../../lib/libnetbsd
 
 .PHONY: all clean
@@ -11,4 +11,5 @@ all: $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o
+	rm -f $(OBJS) $(DEPS)
+-include $(DEPS)

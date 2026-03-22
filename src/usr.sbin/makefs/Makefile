@@ -1,27 +1,27 @@
-PROG=	makefs
-SRCS=	makefs.c mtree.c walk.c cd9660.c ffs.c msdos.c
+PROG:=	makefs
+SRCS:=	makefs.c mtree.c walk.c cd9660.c ffs.c msdos.c
 ifeq ($(USE_HAMMER2), 1)
-	SRCS	+= hammer2.c
+	SRCS+=	hammer2.c
 endif
 ifeq ($(USE_EXFAT), 1)
-	SRCS	+= exfat.c
+	SRCS+=	exfat.c
 endif
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-DMAKEFS
 ifeq ($(USE_HAMMER2), 1)
-	CFLAGS	+= -DMAKEFS_HAMMER2
+	CFLAGS+=	-DMAKEFS_HAMMER2
 endif
 ifeq ($(USE_EXFAT), 1)
-	CFLAGS	+= -DMAKEFS_EXFAT
+	CFLAGS+=	-DMAKEFS_EXFAT
 endif
 CFLAGS+=	-I. -I../../sys -I../../sys/fs/cd9660 -I../../sbin/fsck -I../../sbin/newfs_msdos -I../../contrib/libc-vis -I../../contrib/mtree -I../../lib/libnetbsd
 
-BASE_OBJS=./cd9660/cd9660_conversion.o ./cd9660/cd9660_debug.o ./cd9660/cd9660_eltorito.o ./cd9660/cd9660_strings.o ./cd9660/cd9660_write.o ./cd9660/iso9660_rrip.o ./ffs/buf.o ./ffs/ffs_alloc.o ./ffs/ffs_balloc.o ./ffs/ffs_bswap.o ./ffs/ffs_subr.o ./ffs/mkfs.o ./ffs/ufs_bmap.o ./msdos/msdosfs_conv.o ./msdos/msdosfs_denode.o ./msdos/msdosfs_fat.o ./msdos/msdosfs_lookup.o ./msdos/msdosfs_vfsops.o ./msdos/msdosfs_vnops.o ../../sbin/fsck/progress.o ../../sbin/newfs_msdos/mkfs_msdos.o ../../sys/kern/subr_sbuf.o ../../sys/ufs/ffs/ffs_tables.o ../../contrib/mtree/misc.o ../../lib/libnetbsd/efun.o ../../lib/libnetbsd/strsuftoll.o
+BASE_OBJS:=./cd9660/cd9660_conversion.o ./cd9660/cd9660_debug.o ./cd9660/cd9660_eltorito.o ./cd9660/cd9660_strings.o ./cd9660/cd9660_write.o ./cd9660/iso9660_rrip.o ./ffs/buf.o ./ffs/ffs_alloc.o ./ffs/ffs_balloc.o ./ffs/ffs_bswap.o ./ffs/ffs_subr.o ./ffs/mkfs.o ./ffs/ufs_bmap.o ./msdos/msdosfs_conv.o ./msdos/msdosfs_denode.o ./msdos/msdosfs_fat.o ./msdos/msdosfs_lookup.o ./msdos/msdosfs_vfsops.o ./msdos/msdosfs_vnops.o ../../sbin/fsck/progress.o ../../sbin/newfs_msdos/mkfs_msdos.o ../../sys/kern/subr_sbuf.o ../../sys/ufs/ffs/ffs_tables.o ../../contrib/mtree/misc.o ../../lib/libnetbsd/efun.o ../../lib/libnetbsd/strsuftoll.o
 
-UNAME := $(shell uname -s)
+UNAME:=$(shell uname -s)
 ifeq ($(UNAME), Linux)
 	BASE_OBJS+=	../../contrib/libc-vis/unvis.o ../../lib/libc/gen/getprogname.o ../../lib/libc/gen/setprogname.o ../../lib/libc/string/strlcat.o ../../lib/libc/string/strlcpy.o
 endif
@@ -29,11 +29,11 @@ ifeq ($(UNAME), CYGWIN_NT-10.0)
 	BASE_OBJS+=	../../contrib/libc-vis/unvis.o ../../lib/libc/gen/getprogname.o ../../lib/libc/gen/setprogname.o ../../lib/libc/string/strlcat.o ../../lib/libc/string/strlcpy.o
 endif
 
-LDLIBS=
+LDLIBS:=
 
-SBIN_HAMMER2_OBJS=
-NEWFS_HAMMER2_OBJS=
-HAMMER2_OBJS=
+SBIN_HAMMER2_OBJS:=
+NEWFS_HAMMER2_OBJS:=
+HAMMER2_OBJS:=
 ifeq ($(USE_HAMMER2), 1)
 	CFLAGS+=		-I../../sbin/hammer2 -I../../sbin/newfs_hammer2
 	SBIN_HAMMER2_OBJS+=	../../sbin/hammer2/ondisk.o ../../sbin/hammer2/subs.o ../../sbin/hammer2/uuid.o
@@ -47,8 +47,8 @@ ifeq ($(UNAME), CYGWIN_NT-10.0)
 endif
 endif
 
-EXFAT_LIBEXFAT_OBJS=
-EXFAT_MKFS_OBJS=
+EXFAT_LIBEXFAT_OBJS:=
+EXFAT_MKFS_OBJS:=
 ifeq ($(USE_EXFAT), 1)
 	# -I../../gpl/github.com/relan/exfat/libexfat is for gpl/github.com/relan/exfat/mkfs/mkexfat.h
 	CFLAGS+=		-I../../gpl/github.com/relan -I../../gpl/github.com/relan/exfat/libexfat
@@ -66,7 +66,7 @@ $(PROG): $(OBJS) $(BASE_OBJS) $(EXFAT_LIBEXFAT_OBJS) $(EXFAT_MKFS_OBJS) $(SBIN_H
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o ./$(PROG)
+	rm -f $(OBJS) $(DEPS) $(PROG)
 install:
 	mkdir -p /usr/local/sbin/ || exit 1
 	mkdir -p /usr/local/share/man/man8/ || exit 1
@@ -77,3 +77,4 @@ install:
 uninstall:
 	rm /usr/local/sbin/$(PROG) || exit 1
 	rm /usr/local/share/man/man8/$(PROG).8.gz || exit 1
+-include $(DEPS)

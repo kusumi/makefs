@@ -1,9 +1,9 @@
-PROG=	dumpexfat
-SRCS=	main.c
+PROG:=	dumpexfat
+SRCS:=	main.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-I. -I../libexfat
 
 .PHONY: all clean
@@ -14,4 +14,5 @@ $(PROG): $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o ./$(PROG)
+	rm -f $(OBJS) $(DEPS) $(PROG)
+-include $(DEPS)

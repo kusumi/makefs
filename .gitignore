@@ -1,5 +1,6 @@
 *.swp
 *.o
+*.d
 
 /src/usr.sbin/makefs/makefs
 /src/usr.sbin/makefs/makefs.exe

@@ -1,8 +1,8 @@
-SRCS=	mkfs_msdos.c
+SRCS:=	mkfs_msdos.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-DMAKEFS
 CFLAGS+=	-I. -I../../sys
 
@@ -12,4 +12,5 @@ all: $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o
+	rm -f $(OBJS) $(DEPS)
+-include $(DEPS)

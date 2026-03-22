@@ -1,6 +1,6 @@
-SUBDIRS = usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos sbin/fsck sbin/newfs_msdos sys/kern sys/ufs/ffs contrib/mtree lib/libnetbsd
+SUBDIRS:=usr.sbin/makefs usr.sbin/makefs/cd9660 usr.sbin/makefs/ffs usr.sbin/makefs/msdos sbin/fsck sbin/newfs_msdos sys/kern sys/ufs/ffs contrib/mtree lib/libnetbsd
 
-UNAME := $(shell uname -s)
+UNAME:=$(shell uname -s)
 ifeq ($(UNAME), Linux)
 	SUBDIRS+=	contrib/libc-vis lib/libc/gen lib/libc/string
 endif
@@ -8,18 +8,18 @@ ifeq ($(UNAME), CYGWIN_NT-10.0)
 	SUBDIRS+=	contrib/libc-vis lib/libc/gen lib/libc/string
 endif
 
-BINDIRS = usr.sbin/makefs
+BINDIRS:=usr.sbin/makefs
 
 # HAMMER2 enabled by default
 export USE_HAMMER2	?= 1
 ifeq ($(USE_HAMMER2), 1)
-	SUBDIRS	+= usr.sbin/makefs/hammer2 usr.sbin/makefs/hammer2/zlib sbin/hammer2 sbin/newfs_hammer2 sys/libkern sys/vfs/hammer2/xxhash
+	SUBDIRS+=	usr.sbin/makefs/hammer2 usr.sbin/makefs/hammer2/zlib sbin/hammer2 sbin/newfs_hammer2 sys/libkern sys/vfs/hammer2/xxhash
 endif
 
 # exFAT enabled by default
 export USE_EXFAT	?= 1
 ifeq ($(USE_EXFAT), 1)
-	SUBDIRS	+= gpl/github.com/relan/exfat/libexfat gpl/github.com/relan/exfat/dump gpl/github.com/relan/exfat/fsck gpl/github.com/relan/exfat/label gpl/github.com/relan/exfat/mkfs gpl/github.com/relan/exfat/attrib
+	SUBDIRS+=	gpl/github.com/relan/exfat/libexfat gpl/github.com/relan/exfat/dump gpl/github.com/relan/exfat/fsck gpl/github.com/relan/exfat/label gpl/github.com/relan/exfat/mkfs gpl/github.com/relan/exfat/attrib
 endif
 
 .PHONY: all clean $(SUBDIRS) $(BINDIRS)

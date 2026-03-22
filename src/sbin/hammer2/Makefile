@@ -1,8 +1,8 @@
-SRCS=	ondisk.c subs.c uuid.c
+SRCS:=	ondisk.c subs.c uuid.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-I. -I../../sys
 
 .PHONY: all clean
@@ -11,4 +11,5 @@ all: $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o
+	rm -f $(OBJS) $(DEPS)
+-include $(DEPS)

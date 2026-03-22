@@ -1,9 +1,9 @@
-PROG=	mkexfatfs
-SRCS=	cbm.c fat.c main.c mkexfat.c rootdir.c uct.c uctc.c vbr.c
+PROG:=	mkexfatfs
+SRCS:=	cbm.c fat.c main.c mkexfat.c rootdir.c uct.c uctc.c vbr.c
 
-OBJS := $(SRCS:.c=.o)
+OBJS:=$(SRCS:.c=.o)
+DEPS:=$(OBJS:.o=.d)
 
-CFLAGS+=	-Wall -O2
 CFLAGS+=	-I. -I../libexfat
 
 .PHONY: all clean
@@ -14,4 +14,5 @@ $(PROG): $(OBJS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 clean:
-	rm -f ./*.o ./$(PROG)
+	rm -f $(OBJS) $(DEPS) $(PROG)
+-include $(DEPS)
